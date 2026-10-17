@@ -17,6 +17,12 @@ pub struct GpsData {
     pub datetime: Option<String>,
     /// EXIF orientation value (1..=8).
     pub orientation: u32,
+    /// Focal length in millimetres (the real lens value).
+    pub focal_length: Option<f64>,
+    /// 35mm-equivalent focal length, when the camera writes it.
+    pub focal_length_35: Option<f64>,
+    /// Horizontal field of view in degrees, derived from the focal length.
+    pub fov: f64,
 }
 
 /// Small stable hash of a path string. Used both as the photo id and as the
@@ -56,6 +62,22 @@ fn parse_datetime(s: &str) -> String {
     out
 }
 
+/// Horizontal field of view from the focal length, assuming a full-frame
+/// (36 mm) sensor. The 35mm-equivalent value is preferred because it is
+/// independent of the sensor size; a raw focal length below ~8 mm almost
+/// always comes from a phone/action camera, so without its 35mm-equivalent we
+/// fall back to a neutral default instead of guessing a wildly wrong angle.
+fn fov_from_focal(focal_35: Option<f64>, focal: Option<f64>) -> f64 {
+    let f = match focal_35 {
+        Some(x) if x > 0.0 => Some(x),
+        _ => focal.filter(|&x| x >= 8.0),
+    };
+    match f {
+        Some(f) => (2.0 * (18.0 / f).atan().to_degrees()).clamp(10.0, 120.0),
+        None => 55.0,
+    }
+}
+
 /// Read GPS metadata from a single image file. Returns `None` when the file
 /// has no EXIF data or no usable coordinates.
 pub fn extract(path: &Path) -> Option<GpsData> {
@@ -72,6 +94,8 @@ pub fn extract(path: &Path) -> Option<GpsData> {
     let mut altitude: Option<f64> = None;
     let mut datetime: Option<String> = None;
     let mut orientation: u32 = 1;
+    let mut focal_length: Option<f64> = None;
+    let mut focal_length_35: Option<f64> = None;
 
     // Iterate every field regardless of which IFD it lives in; GPS fields are
     // stored in their own sub-IFD and this finds them without hardcoding
@@ -110,6 +134,16 @@ pub fn extract(path: &Path) -> Option<GpsData> {
             }
         } else if t == exif::Tag::Orientation {
             orientation = f.value.get_uint(0).unwrap_or(1);
+        } else if t == exif::Tag::FocalLength {
+            if let exif::Value::Rational(ref v) = f.value {
+                focal_length = v.first().map(|x| x.to_f64());
+            }
+        } else if t == exif::Tag::FocalLengthIn35mmFilm {
+            if let Some(v) = f.value.get_uint(0) {
+                focal_length_35 = Some(v as f64);
+            } else if let exif::Value::Rational(ref v) = f.value {
+                focal_length_35 = v.first().map(|x| x.to_f64());
+            }
         }
     }
 
@@ -125,5 +159,8 @@ pub fn extract(path: &Path) -> Option<GpsData> {
         altitude,
         datetime,
         orientation,
+        focal_length,
+        focal_length_35,
+        fov: fov_from_focal(focal_length_35, focal_length),
     })
 }

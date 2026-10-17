@@ -21,6 +21,9 @@ pub struct PhotoMeta {
     pub datetime: Option<String>,
     pub orientation: u32,
     pub thumb: Option<String>,
+    pub focal_length: Option<f64>,
+    pub focal_length_35: Option<f64>,
+    pub fov: f64,
 }
 
 #[derive(Serialize)]
@@ -130,6 +133,9 @@ fn scan_roots_impl(app: tauri::AppHandle, roots: Vec<String>) -> Result<ScanSumm
                 datetime: data.datetime.clone(),
                 orientation: data.orientation,
                 thumb,
+                focal_length: data.focal_length,
+                focal_length_35: data.focal_length_35,
+                fov: data.fov,
             });
 
             if scanned % 20 == 0 {
@@ -167,10 +173,8 @@ fn scan_roots_impl(app: tauri::AppHandle, roots: Vec<String>) -> Result<ScanSumm
 /// Read an arbitrary file as bytes. Used to stream thumbnails and full-size
 /// photos into the webview without going through the asset protocol scope.
 #[tauri::command]
-pub async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    tauri::async_runtime::spawn_blocking(move || std::fs::read(&path).map_err(|e| e.to_string()))
-        .await
-        .map_err(|e| e.to_string())?
+pub fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(&path).map_err(|e| e.to_string())
 }
 
 /// Fetch a remote tile through native HTTP, bypassing CORS restrictions that

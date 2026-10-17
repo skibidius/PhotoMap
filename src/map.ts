@@ -106,15 +106,15 @@ let selectedId: string | null = null;
 
 export interface MapCallbacks {
   onSelect: (id: string) => void;
+  onDeselect: () => void;
 }
 
-let callbacks: MapCallbacks = { onSelect: () => {} };
+let callbacks: MapCallbacks = { onSelect: () => {}, onDeselect: () => {} };
 
 export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
   callbacks = cbParam;
   map = L.map(container, {
     zoomControl: true,
-    worldCopyJump: true,
     zoomSnap: 1,
     zoomDelta: 1,
     maxZoom: 22,
@@ -137,12 +137,40 @@ export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
 
   setBasemap(DEFAULT_BASEMAP);
   map.attributionControl.setPrefix('');
+
+  // The map lives inside a flex container; re-lay out tiles whenever its size
+  // changes, otherwise tiles can go grey or disappear entirely.
+  requestAnimationFrame(() => map.invalidateSize());
+  new ResizeObserver(() => map.invalidateSize()).observe(container);
+
+  // Clicking empty map or closing the popup clears the active photo.
+  map.on('click', () => {
+    if (selectedId) {
+      clearSelection();
+      callbacks.onDeselect();
+    }
+  });
+  map.on('popupclose', () => {
+    if (selectedId) {
+      clearSelection();
+      callbacks.onDeselect();
+    }
+  });
 }
 
-function markerHtml(color: string, azimuth: number | null): string {
+function conePath(fov: number): string {
+  const half = (Math.min(fov, 120) / 2) * (Math.PI / 180);
+  const r = 24;
+  const lx = 28 - r * Math.sin(half);
+  const ly = 28 - r * Math.cos(half);
+  const rx = 28 + r * Math.sin(half);
+  return `M28 28 L${lx.toFixed(2)} ${ly.toFixed(2)} L${rx.toFixed(2)} ${ly.toFixed(2)} Z`;
+}
+
+function markerHtml(color: string, azimuth: number | null, fov: number): string {
   const cone =
     azimuth != null
-      ? `<path d="M28 28 L22.31 6.75 L33.69 6.75 Z" fill="${color}" fill-opacity="0.28"/>`
+      ? `<path d="${conePath(fov)}" fill="${color}" fill-opacity="0.28"/>`
       : '';
   return `<div class="pm-marker">
     <svg width="56" height="56" viewBox="0 0 56 56">
@@ -163,7 +191,7 @@ export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
     const color = colors.get(p.album) ?? '#6750a4';
     const icon = L.divIcon({
       className: 'pm-marker-icon',
-      html: markerHtml(color, p.azimuth),
+      html: markerHtml(color, p.azimuth, p.fov || 55),
       iconSize: [56, 56],
       iconAnchor: [28, 28],
     });
@@ -181,28 +209,38 @@ export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
 function popupHtml(p: Photo): string {
   const az = p.azimuth != null ? `${p.azimuth.toFixed(0)}°` : '—';
   const azRef = p.azimuth_ref === 'M' ? ` (${t('azimuthMagnetic')})` : '';
+  const focal = p.focal_length_35 ?? p.focal_length;
   const rows = [
     [t('datetime'), p.datetime ?? '—'],
     [t('latitude'), formatCoord(p.latitude)],
     [t('longitude'), formatCoord(p.longitude)],
     [t('azimuth'), az + azRef],
-    [t('altitude'), p.altitude != null ? `${p.altitude.toFixed(0)} м` : '—'],
+    [t('fov'), p.fov ? `${p.fov.toFixed(0)}°` : '—'],
+    [t('focal'), focal != null ? `${focal.toFixed(0)} mm` : '—'],
+    [t('altitude'), p.altitude != null ? `${p.altitude.toFixed(0)} m` : '—'],
   ]
     .map(([k, v]) => `<div class="pp-row"><span>${k}</span><b>${escapeHtml(String(v))}</b></div>`)
     .join('');
 
   return `<div class="popup">
+    <button class="popup-close" aria-label="${t('close')}">
+      <span class="material-symbols-rounded">close</span>
+    </button>
     <div class="pp-img-wrap"><img id="pp-img-${p.id}" class="pp-img" alt="" /></div>
     <div class="pp-title">${escapeHtml(p.name)}</div>
     <div class="pp-meta">${rows}</div>
   </div>`;
 }
 
-export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): void {
-  // Reset previous highlight.
+export function clearSelection(): void {
   if (selectedId) {
     markers.get(selectedId)?.getElement()?.classList.remove('pm-selected');
   }
+  selectedId = null;
+}
+
+export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): void {
+  clearSelection();
   selectedId = id;
   if (!id) return;
 
@@ -213,13 +251,22 @@ export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): vo
   const reveal = (): void => {
     marker.getElement()?.classList.add('pm-selected');
     marker.bindPopup(popupHtml(photo), { closeButton: false, offset: [0, -14] }).openPopup();
-    loadImageUrl(photo.thumb ?? photo.path)
+
+    const popupEl = marker.getPopup()?.getElement();
+    popupEl?.querySelector('.popup-close')?.addEventListener('click', () => map.closePopup());
+
+    const img = popupEl?.querySelector<HTMLImageElement>('.pp-img') ?? null;
+    const tryLoad = (path: string | null): Promise<string> =>
+      path ? loadImageUrl(path) : Promise.reject(new Error('no image'));
+
+    // Prefer the cached thumbnail, fall back to the original file.
+    tryLoad(photo.thumb)
+      .catch(() => tryLoad(photo.path))
       .then((url) => {
-        const img = document.getElementById(`pp-img-${photo.id}`) as HTMLImageElement | null;
         if (img) img.src = url;
       })
       .catch(() => {
-        /* leave the placeholder empty */
+        if (img) img.classList.add('failed');
       });
   };
 

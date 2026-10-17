@@ -49,15 +49,15 @@ THUMBS = [
 ]
 
 PHOTOS = [
-    ("IMG_0342.jpg", 55.755826, 37.617300, 45.0, "2026-08-12 14:30:00"),
-    ("IMG_0347.jpg", 55.752000, 37.622500, 130.0, "2026-08-12 14:45:00"),
-    ("IMG_0351.jpg", 55.760500, 37.609500, 240.0, "2026-08-12 15:02:00"),
+    ("IMG_0342.jpg", 55.755826, 37.617300, 45.0, 24.0, 73.7, "2026-08-12 14:30:00"),
+    ("IMG_0347.jpg", 55.752000, 37.622500, 130.0, 50.0, 39.6, "2026-08-12 14:45:00"),
+    ("IMG_0351.jpg", 55.760500, 37.609500, 240.0, 16.0, 96.7, "2026-08-12 15:02:00"),
 ]
 
 ALBUMS = ["Moscow", "Moscow", "Park"]
 
 entries = []
-for i, ((t, b), (name, lat, lon, az, dt)) in enumerate(zip(THUMBS, PHOTOS)):
+for i, ((t, b), (name, lat, lon, az, f35, fov, dt)) in enumerate(zip(THUMBS, PHOTOS)):
     png = make_png(256, 192, t, b)
     b64 = base64.b64encode(png).decode("ascii")
     entries.append(
@@ -74,6 +74,9 @@ for i, ((t, b), (name, lat, lon, az, dt)) in enumerate(zip(THUMBS, PHOTOS)):
         f"    datetime: '{dt}',\n"
         "    orientation: 1,\n"
         f"    thumb: 'data:image/png;base64,{b64}',\n"
+        "    focal_length: null,\n"
+        f"    focal_length_35: {f35},\n"
+        f"    fov: {fov},\n"
         "  },"
     )
 

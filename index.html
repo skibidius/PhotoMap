@@ -26,10 +26,23 @@
         <div class="topbar-left">
           <span class="app-logo material-symbols-rounded">photo_camera</span>
           <span class="app-title">PhotoMap</span>
-          <button id="import-btn" class="btn btn-filled">
-            <span class="material-symbols-rounded">add_photo_alternate</span>
-            <span data-i18n="import">Import</span>
-          </button>
+          <div class="menu-anchor">
+            <button id="import-btn" class="btn btn-filled" aria-haspopup="menu">
+              <span class="material-symbols-rounded">add_photo_alternate</span>
+              <span data-i18n="import">Import</span>
+              <span class="material-symbols-rounded import-arrow">arrow_drop_down</span>
+            </button>
+            <div id="import-menu" class="menu hidden" role="menu">
+              <button id="import-folder" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">folder_open</span>
+                <span data-i18n="importFolder">Import folder</span>
+              </button>
+              <button id="import-files" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">image</span>
+                <span data-i18n="importFiles">Import photos</span>
+              </button>
+            </div>
+          </div>
           <button id="fit-btn" class="btn btn-icon" data-i18n-title="fit" title="Fit">
             <span class="material-symbols-rounded">center_focus_strong</span>
           </button>
@@ -164,6 +177,14 @@
               <button class="seg" data-lang="ru">Русский</button>
               <button class="seg" data-lang="en">English</button>
             </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-label" data-i18n="updates">Updates</div>
+            <button id="check-updates-btn" class="btn btn-tonal">
+              <span class="material-symbols-rounded">system_update_alt</span>
+              <span data-i18n="checkUpdates">Check for updates</span>
+            </button>
           </div>
         </div>
       </div>

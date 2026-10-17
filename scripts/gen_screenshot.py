@@ -33,9 +33,9 @@ SECONDARY_CONTAINER = (232, 240, 254)
 
 # Demo data (mirrors src/demo.ts)
 PHOTOS = [
-    ("IMG_0342.jpg", 55.755826, 37.617300, 45.0, "Moscow", (38, 166, 154), (21, 101, 192)),
-    ("IMG_0347.jpg", 55.752000, 37.622500, 130.0, "Moscow", (126, 87, 194), (233, 30, 99)),
-    ("IMG_0351.jpg", 55.760500, 37.609500, 240.0, "Park", (255, 167, 38), (230, 81, 0)),
+    ("IMG_0342.jpg", 55.755826, 37.617300, 45.0, "Moscow", (38, 166, 154), (21, 101, 192), 73.7),
+    ("IMG_0347.jpg", 55.752000, 37.622500, 130.0, "Moscow", (126, 87, 194), (233, 30, 99), 39.6),
+    ("IMG_0351.jpg", 55.760500, 37.609500, 240.0, "Park", (255, 167, 38), (230, 81, 0), 96.7),
 ]
 ALBUM_COLORS = {"Moscow": (26, 115, 232), "Park": (24, 128, 56)}
 ALBUM_ORDER = ["Moscow", "Park"]
@@ -218,7 +218,7 @@ def draw_map_screenshot():
 
     # sidebar photo items
     y0 = TOPBAR + 88
-    for i, (name, lat, lng, az, album, ttop, tbot) in enumerate(PHOTOS):
+    for i, (name, lat, lng, az, album, ttop, tbot, _fov) in enumerate(PHOTOS):
         yy = y0 + i * 68
         # selected background for first item
         if i == 0:
@@ -267,18 +267,18 @@ def draw_map_screenshot():
         return px - top_left[0], py - top_left[1]
 
     # markers + direction cones
-    for name, lat, lng, az, album, _, _ in PHOTOS:
+    for name, lat, lng, az, album, _, _, fov in PHOTOS:
         x, y = to_map(lat, lng)
         color = ALBUM_COLORS[album]
         rad = math.radians(az)
         dirx, diry = math.sin(rad), -math.cos(rad)
         L = 40
-        # cone (translucent triangle)
-        half = math.radians(16)
-        px1, py1 = x + L * math.cos(half) * dirx - L * math.sin(half) * diry, y + L * math.cos(half) * diry + L * math.sin(half) * dirx
-        px2, py2 = x + L * math.cos(half) * dirx + L * math.sin(half) * diry, y + L * math.cos(half) * diry - L * math.sin(half) * dirx
+        half = math.radians(min(fov, 120) / 2)
+        cosh, sinh = math.cos(half), math.sin(half)
+        p1 = (x + L * (dirx * cosh - diry * sinh), y + L * (dirx * sinh + diry * cosh))
+        p2 = (x + L * (dirx * cosh + diry * sinh), y + L * (-dirx * sinh + diry * cosh))
         cone = Image.new("RGBA", (MAP_W, MAP_H), (0, 0, 0, 0))
-        ImageDraw.Draw(cone).polygon([(x, y), (px1, py1), (px2, py2)], fill=color + (72,))
+        ImageDraw.Draw(cone).polygon([(x, y), p1, p2], fill=color + (72,))
         map_img = Image.alpha_composite(map_img.convert("RGBA"), cone)
         md = ImageDraw.Draw(map_img, "RGBA")
         # dot

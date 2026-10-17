@@ -1,37 +1,56 @@
 #!/usr/bin/env python3
 """Generate the PhotoMap app icon (1024x1024 PNG) with no external deps.
 
-A simple "map pin + direction arrow" mark on a Material-ish gradient rounded
-square. Rendered with 3x3 supersampling for smooth edges, then written as PNG
-using only the standard library (zlib + struct).
+A map pin filled with a small landscape (sky, sun, two mountain ridges) and
+framed by a white border, on a Google-blue → indigo gradient tile. The mark
+reads as "photo on a map" and keeps a clear silhouette at small sizes.
+Rendered with 3x3 supersampling for smooth edges.
 """
 import math
+import os
 import struct
 import zlib
 
 SIZE = 1024
-SS = 3  # supersampling factor per axis
+SS = 3
 
 # Palette
-TOP = (124, 77, 255)     # #7C4DFF
-BOTTOM = (41, 121, 255)  # #2979FF
+BG_TOP = (66, 133, 244)          # #4285F4
+BG_BOTTOM = (124, 77, 255)       # #7C4DFF
 WHITE = (255, 255, 255)
+SKY_TOP = (176, 208, 255)        # #B0D0FF
+SKY_HORIZON = (240, 247, 255)    # #F0F7FF
+SUN = (255, 193, 7)              # #FFC107
+MTN_BACK = (138, 180, 248)       # #8AB4F8
+MTN_FRONT = (11, 87, 208)        # #0B57D0
 
-# Geometry (in 1024 space)
-CX = SIZE / 2.0
-PIN_CY = 470.0
-PIN_R = 268.0
-HOLE_R = 150.0
+# Pin geometry
+CX = 512.0
+PIN_CY = 425.0
+R_IN = 250.0
+TIP_IN = 820.0
+R_OUT = 266.0
+TIP_OUT = 836.0
 
-# Pin tail triangle (pointing down)
-TA = (CX - 176, 640)   # left base
-TB = (CX + 176, 640)   # right base
-TC = (CX, 910)         # tip
+# Lens inside the pin head
+LENS_C = (512.0, 425.0)
+LENS_BARREL_R = 142.0
+LENS_GLASS_R = 98.0
+LENS_RING = 8.0
+GLASS = (59, 130, 246)     # #3B82F6
+BARREL = (11, 87, 208)     # #0B57D0
 
-# Arrow triangle (pointing up), inside the hole
-AA = (CX, 412)
-AB = (CX - 84, 520)
-AC = (CX + 84, 520)
+
+def mix(a, b, t):
+    return (
+        a[0] + (b[0] - a[0]) * t,
+        a[1] + (b[1] - a[1]) * t,
+        a[2] + (b[2] - a[2]) * t,
+    )
+
+
+def clamp(v, lo=0.0, hi=1.0):
+    return max(lo, min(hi, v))
 
 
 def sd_round_rect(px, py, cx, cy, hw, hh, r):
@@ -59,47 +78,87 @@ def point_in_triangle(px, py, a, b, c):
 
 
 def coverage(d):
-    """Smooth coverage in [0, 1] from a signed distance."""
-    return min(1.0, max(0.0, 0.5 - d))
+    return clamp(0.5 - d)
+
+
+def interp(x, pts):
+    if x <= pts[0][0]:
+        return pts[0][1]
+    if x >= pts[-1][0]:
+        return pts[-1][1]
+    for i in range(len(pts) - 1):
+        x0, y0 = pts[i]
+        x1, y1 = pts[i + 1]
+        if x0 <= x <= x1:
+            return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+    return pts[-1][1]
+
+
+def make_pin(r, tip_y):
+    d = tip_y - PIN_CY
+    c = r / d
+    s = math.sqrt(1.0 - c * c)
+    return (r, (CX - r * s, PIN_CY + r * c), (CX + r * s, PIN_CY + r * c), (CX, tip_y))
+
+
+PIN_IN = make_pin(R_IN, TIP_IN)
+PIN_OUT = make_pin(R_OUT, TIP_OUT)
+
+
+def pin_cov(px, py, pin):
+    r, a, b, tip = pin
+    cov = coverage(sd_circle(px, py, CX, PIN_CY, r))
+    if point_in_triangle(px, py, a, b, tip):
+        cov = 1.0
+    return cov
+
+
+def lens(px, py):
+    d = math.hypot(px - LENS_C[0], py - LENS_C[1])
+    if d <= LENS_GLASS_R:
+        color = GLASS
+        h1 = math.hypot(px - (LENS_C[0] - 38.0), py - (LENS_C[1] - 38.0))
+        h2 = math.hypot(px - (LENS_C[0] - 24.0), py - (LENS_C[1] - 24.0))
+        if h1 <= 34.0 and h2 >= 34.0:
+            color = WHITE
+        return color
+    if d <= LENS_GLASS_R + LENS_RING:
+        return WHITE
+    if d <= LENS_BARREL_R:
+        return BARREL
+    return WHITE
 
 
 def sample(px, py):
-    rr = sd_round_rect(px, py, CX, SIZE / 2.0, SIZE / 2.0 - 28, SIZE / 2.0 - 28, 210)
+    rr = sd_round_rect(px, py, CX, SIZE / 2.0, SIZE / 2.0 - 28, SIZE / 2.0 - 28, 200)
     if rr >= 0.5:
-        return (0, 0, 0, 0.0)
-
-    t = py / SIZE
-    base = (
-        TOP[0] + (BOTTOM[0] - TOP[0]) * t,
-        TOP[1] + (BOTTOM[1] - TOP[1]) * t,
-        TOP[2] + (BOTTOM[2] - TOP[2]) * t,
-    )
+        return (0.0, 0.0, 0.0, 0.0)
     bg_alpha = coverage(rr)
 
-    # Pin = circle + tail triangle
-    pin = coverage(sd_circle(px, py, CX, PIN_CY, PIN_R))
-    if point_in_triangle(px, py, TA, TB, TC):
-        pin = 1.0
-    pin = min(1.0, pin)
+    t = (px + py) / (2 * (SIZE - 1))
+    bg = mix(BG_TOP, BG_BOTTOM, t)
 
-    hole = coverage(sd_circle(px, py, CX, PIN_CY, HOLE_R))
-    arrow = 1.0 if point_in_triangle(px, py, AA, AB, AC) else 0.0
+    glow = clamp(1.0 - math.hypot(px - 512.0, py - 320.0) / 560.0)
+    bg = mix(bg, WHITE, 0.10 * glow)
 
-    # Compose
-    if pin > 0.0:
-        # White pin, but cut a hole that shows the gradient underneath
-        inside_hole = min(1.0, hole)
-        pin_alpha = pin * (1.0 - inside_hole)
-        arrow_alpha = inside_hole * arrow * pin
-        r = base[0] * (1 - pin_alpha - arrow_alpha) + WHITE[0] * (pin_alpha + arrow_alpha)
-        g = base[1] * (1 - pin_alpha - arrow_alpha) + WHITE[1] * (pin_alpha + arrow_alpha)
-        b = base[2] * (1 - pin_alpha - arrow_alpha) + WHITE[2] * (pin_alpha + arrow_alpha)
-        a = bg_alpha * max(pin, min(1.0, pin_alpha + arrow_alpha))
-        # ensure alpha covers the pin shape fully
-        a = bg_alpha if pin >= 1.0 else bg_alpha * pin
-        return (r, g, b, a)
+    ds = math.hypot(px - 512.0, py - 520.0)
+    shadow = clamp(1.0 - (ds - 230.0) / 200.0)
+    bg = mix(bg, (44, 33, 82), 0.12 * shadow)
 
-    return (base[0], base[1], base[2], bg_alpha)
+    cov_out = pin_cov(px, py, PIN_OUT)
+    if cov_out > 0.0:
+        cov_in = pin_cov(px, py, PIN_IN)
+        pin_col = WHITE
+        if cov_in > 0.0:
+            pin_col = mix(WHITE, lens(px, py), cov_in)
+        return (
+            bg[0] + (pin_col[0] - bg[0]) * cov_out,
+            bg[1] + (pin_col[1] - bg[1]) * cov_out,
+            bg[2] + (pin_col[2] - bg[2]) * cov_out,
+            bg_alpha,
+        )
+
+    return (bg[0], bg[1], bg[2], bg_alpha)
 
 
 def main():
@@ -110,19 +169,20 @@ def main():
             ar = ag = ab = aa = 0.0
             for sy in range(SS):
                 for sx in range(SS):
-                    px = x + (sx + 0.5) / SS
-                    py = y + (sy + 0.5) / SS
-                    r, g, b, a = sample(px, py)
+                    r, g, b, a = sample(x + (sx + 0.5) / SS, y + (sy + 0.5) / SS)
                     ar += r
                     ag += g
                     ab += b
                     aa += a
             n = SS * SS
-            r = int(round(ar / n))
-            g = int(round(ag / n))
-            b = int(round(ab / n))
-            a = int(round(aa / n * 255))
-            row += bytes((r, g, b, a))
+            row += bytes(
+                (
+                    int(round(ar / n)),
+                    int(round(ag / n)),
+                    int(round(ab / n)),
+                    int(round(aa / n * 255)),
+                )
+            )
         rows.append(bytes(row))
 
     raw = b"".join(b"\x00" + row for row in rows)
@@ -138,6 +198,7 @@ def main():
     png += chunk(b"IDAT", zlib.compress(raw, 9))
     png += chunk(b"IEND", b"")
 
+    os.makedirs("assets", exist_ok=True)
     with open("assets/app-icon.png", "wb") as f:
         f.write(png)
     print("wrote assets/app-icon.png")

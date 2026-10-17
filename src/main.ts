@@ -16,10 +16,11 @@ import {
   getBasemap,
   BASEMAPS,
 } from './map';
-import { initSidebar, render, highlight, filterPhotos } from './sidebar';
+import { initSidebar, render, highlight, clearHighlight, filterPhotos } from './sidebar';
 import { initLightbox, open as openLightbox } from './lightbox';
 import { exportKml, exportGeoJson, exportScreenshot } from './export';
 import { initTooltips } from './tooltip';
+import { checkForUpdates } from './updater';
 import { clearImageCache } from './util';
 import type { Photo, ScanSummary } from './types';
 
@@ -49,6 +50,9 @@ let sortBy: 'date' | 'name' = 'date';
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
 const importBtn = $('import-btn');
+const importMenu = $('import-menu');
+const importFolderBtn = $('import-folder');
+const importFilesBtn = $('import-files');
 const emptyImportBtn = $('empty-import-btn');
 const fitBtn = $('fit-btn');
 const searchInput = $<HTMLInputElement>('search-input');
@@ -67,6 +71,7 @@ const langBtn = $('lang-btn');
 const settingsBtn = $('settings-btn');
 const settingsPanel = $('settings-panel');
 const settingsClose = $('settings-close');
+const checkUpdatesBtn = $('check-updates-btn');
 const accentPresets = $('accent-presets');
 const accentCustom = $<HTMLInputElement>('accent-custom');
 const emptyState = $('empty-state');
@@ -122,6 +127,11 @@ function select(id: string, fromMap: boolean): void {
   highlight(id, !fromMap);
 }
 
+function deselect(): void {
+  selectedId = null;
+  clearHighlight();
+}
+
 function openViewer(id: string): void {
   const idx = currentList.findIndex((p) => p.id === id);
   if (idx >= 0) openLightbox(currentList, idx);
@@ -142,8 +152,23 @@ function clearAll(): void {
 
 // --- import ---
 
-async function importPhotos(): Promise<void> {
+async function importFolder(): Promise<void> {
   const selected = await open({ directory: true, multiple: true });
+  if (!selected) return;
+  const roots = Array.isArray(selected) ? selected : [selected];
+  await scan(roots);
+}
+
+async function importFiles(): Promise<void> {
+  const selected = await open({
+    multiple: true,
+    filters: [
+      {
+        name: 'Images',
+        extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'tif', 'tiff'],
+      },
+    ],
+  });
   if (!selected) return;
   const roots = Array.isArray(selected) ? selected : [selected];
   await scan(roots);
@@ -291,6 +316,7 @@ function init(): void {
 
   initMap($('map'), {
     onSelect: (id) => select(id, true),
+    onDeselect: () => deselect(),
   });
   initSidebar($('photo-list'), {
     onSelect: (id) => select(id, false),
@@ -299,8 +325,7 @@ function init(): void {
   });
   initLightbox((id) => void reveal(id));
 
-  importBtn.addEventListener('click', () => void importPhotos());
-  emptyImportBtn.addEventListener('click', () => void importPhotos());
+  emptyImportBtn.addEventListener('click', () => void importFolder());
   fitBtn.addEventListener('click', () => fitToPhotos());
   clearBtn.addEventListener('click', clearAll);
 
@@ -320,6 +345,7 @@ function init(): void {
   const closeMenus = (): void => {
     exportMenu.classList.add('hidden');
     basemapMenu.classList.add('hidden');
+    importMenu.classList.add('hidden');
   };
 
   const focusFirstItem = (menu: HTMLElement): void => {
@@ -350,13 +376,34 @@ function init(): void {
     }
   });
 
+  importBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = importMenu.classList.contains('hidden');
+    closeMenus();
+    if (willOpen) {
+      importMenu.classList.remove('hidden');
+      focusFirstItem(importMenu);
+    }
+  });
+
+  importFolderBtn.addEventListener('click', () => {
+    importMenu.classList.add('hidden');
+    void importFolder();
+  });
+  importFilesBtn.addEventListener('click', () => {
+    importMenu.classList.add('hidden');
+    void importFiles();
+  });
+
   document.addEventListener('click', closeMenus);
   exportMenu.addEventListener('click', (e) => e.stopPropagation());
   basemapMenu.addEventListener('click', (e) => e.stopPropagation());
+  importMenu.addEventListener('click', (e) => e.stopPropagation());
 
   const menuPairs: Array<{ menu: HTMLElement; trigger: HTMLElement }> = [
     { menu: basemapMenu, trigger: basemapBtn },
     { menu: exportMenu, trigger: exportBtn },
+    { menu: importMenu, trigger: importBtn },
   ];
   for (const { menu, trigger } of menuPairs) {
     menu.addEventListener('keydown', (e) => {
@@ -392,6 +439,7 @@ function init(): void {
 
   settingsBtn.addEventListener('click', () => settingsPanel.classList.remove('hidden'));
   settingsClose.addEventListener('click', () => settingsPanel.classList.add('hidden'));
+  checkUpdatesBtn.addEventListener('click', () => void checkForUpdates(false));
   settingsPanel.addEventListener('click', (e) => {
     if (e.target === settingsPanel) settingsPanel.classList.add('hidden');
   });
@@ -422,6 +470,9 @@ function init(): void {
   syncControls();
 
   void initDragDrop();
+
+  // Check for updates a moment after startup so the app is interactive first.
+  window.setTimeout(() => void checkForUpdates(true), 3000);
 }
 
 async function reveal(id: string): Promise<void> {

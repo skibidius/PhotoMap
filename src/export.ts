@@ -126,16 +126,19 @@ function drawMarker(
   y: number,
   color: string,
   azimuth: number | null,
+  fov: number,
   r: number,
 ): void {
   if (azimuth != null) {
+    const half = (Math.min(fov, 120) / 2) * (Math.PI / 180);
+    const len = r * 2.7;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate((azimuth * Math.PI) / 180);
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(-r * 0.55, -r * 2.7);
-    ctx.lineTo(r * 0.55, -r * 2.7);
+    ctx.lineTo(-len * Math.sin(half), -len * Math.cos(half));
+    ctx.lineTo(len * Math.sin(half), -len * Math.cos(half));
     ctx.closePath();
     ctx.fillStyle = color;
     ctx.globalAlpha = 0.28;
@@ -213,7 +216,7 @@ export async function exportScreenshot(
     const pt = map.project([p.latitude, p.longitude], zoom).subtract(topLeft);
     if (pt.x < -40 || pt.y < -40 || pt.x > size.x + 40 || pt.y > size.y + 40) continue;
     const color = albumColors.get(p.album) ?? '#6750a4';
-    drawMarker(ctx, pt.x, pt.y, color, p.azimuth, 9);
+    drawMarker(ctx, pt.x, pt.y, color, p.azimuth, p.fov || 55, 9);
   }
 
   // --- theme colors for the cards ---

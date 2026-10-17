@@ -118,3 +118,7 @@ export function highlight(id: string, scroll = true): void {
   item.classList.add('selected');
   if (scroll) item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
+
+export function clearHighlight(): void {
+  listEl.querySelector('.photo-item.selected')?.classList.remove('selected');
+}

@@ -216,6 +216,16 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+.btn-tonal {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+.btn-tonal:hover {
+  background: var(--md-secondary-container);
+  filter: brightness(0.96);
+}
+
 .btn-filled:hover {
   background: var(--md-primary);
   filter: brightness(1.06);
@@ -239,6 +249,10 @@ body {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.5px;
+}
+
+.import-arrow {
+  font-size: 18px;
 }
 
 /* ---------- Select ---------- */
@@ -564,8 +578,34 @@ body {
 }
 
 .popup {
+  position: relative;
   min-width: 200px;
   max-width: 240px;
+}
+
+.popup-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.popup-close .material-symbols-rounded {
+  font-size: 18px;
+}
+
+.popup-close:hover {
+  background: rgba(0, 0, 0, 0.65);
 }
 
 .pp-img-wrap {
@@ -573,6 +613,7 @@ body {
   overflow: hidden;
   background: var(--md-surface-variant);
   margin-bottom: 8px;
+  min-height: 64px;
 }
 
 .pp-img {
@@ -580,6 +621,10 @@ body {
   max-height: 140px;
   object-fit: cover;
   display: block;
+}
+
+.pp-img.failed {
+  display: none;
 }
 
 .pp-title {

@@ -11,6 +11,9 @@ export interface Photo {
   datetime: string | null;
   orientation: number;
   thumb: string | null;
+  focal_length: number | null;
+  focal_length_35: number | null;
+  fov: number;
 }
 
 export interface ScanSummary {

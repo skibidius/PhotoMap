@@ -2,7 +2,7 @@
 
 A small desktop app that puts your photos on a map. It reads GPS coordinates and the shooting direction (the compass azimuth) straight from EXIF, so every photo gets a marker that also shows which way the camera was pointed.
 
-Built with [Tauri 2](https://v2.tauri.app/) — the installers are tens of megabytes, not half a gigabyte.
+Built with [Tauri 2](https://v2.tauri.app/).
 
 [Русская версия →](README.ru.md)
 
@@ -17,6 +17,7 @@ Built with [Tauri 2](https://v2.tauri.app/) — the installers are tens of megab
 - **Export** — KML, GeoJSON, and a PNG snapshot of the current view (with a legend listing albums).
 - **Material You** look with an accent-color picker and light/dark/system theme.
 - **English and Russian** interface.
+- **Auto-update** — checks for new versions on startup and installs them after you confirm.
 
 ## Screenshots
 
@@ -27,6 +28,10 @@ Built with [Tauri 2](https://v2.tauri.app/) — the installers are tens of megab
 ## Download
 
 Grab an installer from the [Releases](../../releases) page. Windows gets an `.msi` / `.exe`, macOS a `.dmg` (Intel and Apple Silicon), Linux a `.deb` and an AppImage.
+
+> macOS: the app isn't notarized, so Gatekeeper may complain. If you see a
+> "damaged app" message, clear the quarantine flag:
+> `xattr -d com.apple.quarantine /Applications/PhotoMap.app`
 
 ## Running from source
 
