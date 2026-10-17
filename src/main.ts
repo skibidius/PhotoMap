@@ -1,5 +1,7 @@
 // Application bootstrap and UI wiring.
 
+import './fonts.css';
+
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
