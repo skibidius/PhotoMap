@@ -905,6 +905,49 @@ textarea {
   margin: 0;
 }
 
+.about-card {
+  width: 390px;
+  max-width: calc(100vw - 32px);
+  background: var(--md-surface-container);
+  border-radius: 24px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.about-logo {
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.about-card h2 {
+  margin: 0 0 4px;
+  font-weight: 500;
+  font-size: 22px;
+}
+
+.about-version {
+  font-size: 13px;
+  color: var(--md-on-surface-variant);
+  margin-bottom: 12px;
+}
+
+.about-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 20px;
+}
+
+.about-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
 .settings-section {
   margin-top: 20px;
 }

@@ -24,6 +24,7 @@ import { exportKml, exportGeoJson, exportScreenshot, copyScreenshot } from './ex
 import { initTooltips } from './tooltip';
 import { checkForUpdates } from './updater';
 import { initContextMenu } from './contextmenu';
+import appIcon from './assets/app-icon.png';
 import type { Photo, ScanSummary } from './types';
 
 // Import last so its rules win over Leaflet's defaults.
@@ -76,6 +77,12 @@ const settingsPanel = $('settings-panel');
 const settingsClose = $('settings-close');
 const checkUpdatesBtn = $('check-updates-btn');
 const labelsToggle = $<HTMLInputElement>('labels-toggle');
+const aboutPanel = $('about-panel');
+const aboutBtn = $('about-btn');
+const aboutClose = $('about-close');
+const aboutVersion = $('about-version');
+const aboutGithub = $('about-github');
+const aboutLogo = $<HTMLImageElement>('about-logo');
 const accentPresets = $('accent-presets');
 const accentCustom = $<HTMLInputElement>('accent-custom');
 const emptyState = $('empty-state');
@@ -500,6 +507,26 @@ function init(): void {
     showLabels = labelsToggle.checked;
     localStorage.setItem('photomap.labels', showLabels ? '1' : '0');
     applyLabels();
+  });
+
+  aboutLogo.src = appIcon;
+  aboutBtn.addEventListener('click', () => {
+    aboutPanel.classList.remove('hidden');
+    import('@tauri-apps/api/app')
+      .then(({ getVersion }) => getVersion())
+      .then((v) => {
+        aboutVersion.textContent = `${t('version')} ${v}`;
+      })
+      .catch(() => {
+        aboutVersion.textContent = `${t('version')} 0.1.6`;
+      });
+  });
+  aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));
+  aboutPanel.addEventListener('click', (e) => {
+    if (e.target === aboutPanel) aboutPanel.classList.add('hidden');
+  });
+  aboutGithub.addEventListener('click', () => {
+    void invoke('open_url', { url: 'https://github.com/skibidius/PhotoMap' });
   });
 
   renderAccentPresets();

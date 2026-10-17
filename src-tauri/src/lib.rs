@@ -69,6 +69,7 @@ pub fn run() {
             commands::save_text,
             commands::save_bytes,
             commands::reveal_in_file_manager,
+            commands::open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

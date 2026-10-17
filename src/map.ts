@@ -160,6 +160,35 @@ export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
       callbacks.onDeselect();
     }
   });
+
+  // Robust marker clicks. Leaflet sometimes swallows a marker click right
+  // after a fast drag/pan, so handle clicks in the capture phase instead and
+  // ignore anything that was actually a drag.
+  let downX = Number.NaN;
+  let downY = Number.NaN;
+  container.addEventListener(
+    'pointerdown',
+    (e) => {
+      downX = e.clientX;
+      downY = e.clientY;
+    },
+    true,
+  );
+  container.addEventListener(
+    'click',
+    (e) => {
+      const dragged =
+        Number.isFinite(downX) && Math.hypot(e.clientX - downX, e.clientY - downY) > 6;
+      if (dragged) return;
+      const el = (e.target as Element | null)?.closest<HTMLElement>('.pm-marker-icon');
+      const id = el?.dataset.photoId;
+      if (!id) return;
+      e.stopPropagation();
+      e.preventDefault();
+      callbacks.onSelect(id);
+    },
+    true,
+  );
 }
 
 function conePath(fov: number): string {
@@ -202,8 +231,8 @@ export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
       iconAnchor: [28, 28],
     });
     const marker = L.marker([p.latitude, p.longitude], { icon, title: p.name });
-    marker.on('click', () => {
-      callbacks.onSelect(p.id);
+    marker.on('add', () => {
+      marker.getElement()?.setAttribute('data-photo-id', p.id);
     });
     markers.set(p.id, marker);
     cluster.addLayer(marker);
