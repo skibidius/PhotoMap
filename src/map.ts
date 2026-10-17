@@ -167,7 +167,6 @@ function createMap(crsKey: 'EPSG3857' | 'EPSG3395'): void {
   map.addLayer(cluster);
   map.attributionControl.setPrefix('');
   map.on('click', onMapClick);
-  map.on('popupclose', onMapClick);
   requestAnimationFrame(() => map.invalidateSize());
   rebuildMarkers();
 }
@@ -332,7 +331,11 @@ export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): vo
       .openPopup();
 
     const popupEl = marker.getPopup()?.getElement();
-    popupEl?.querySelector('.popup-close')?.addEventListener('click', () => map.closePopup());
+    popupEl?.querySelector('.popup-close')?.addEventListener('click', () => {
+      map.closePopup();
+      clearSelection();
+      callbacks.onDeselect();
+    });
     popupEl?.querySelectorAll<HTMLImageElement>('.pp-img').forEach((img) => {
       img.addEventListener('error', () => img.classList.add('failed'));
     });

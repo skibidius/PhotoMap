@@ -165,6 +165,13 @@ async function copyTextToClipboard(text: string): Promise<void> {
     const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
     await writeText(text);
     toast(t('copied'));
+    return;
+  } catch {
+    /* fall through to the web clipboard */
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(t('copied'));
   } catch {
     toast(t('copyError'));
   }
@@ -519,7 +526,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.8`;
+        aboutVersion.textContent = `${t('version')} 0.1.9`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));

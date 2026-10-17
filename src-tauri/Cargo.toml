@@ -1,6 +1,6 @@
 [package]
 name = "photomap"
-version = "0.1.8"
+version = "0.1.9"
 description = "Lightweight desktop app to show geotagged photos on a map"
 authors = ["skibidius"]
 edition = "2021"
@@ -14,7 +14,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"

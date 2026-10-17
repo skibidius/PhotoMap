@@ -405,9 +405,15 @@ export async function copyScreenshot(
   showLabels: boolean,
 ): Promise<boolean> {
   const blob = await renderSnapshot(photos, albumColors, showLabels);
-  const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager');
-  const { Image } = await import('@tauri-apps/api/image');
-  const image = await Image.fromBytes(new Uint8Array(await blob.arrayBuffer()));
-  await writeImage(image);
+  try {
+    const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager');
+    const { Image } = await import('@tauri-apps/api/image');
+    const image = await Image.fromBytes(new Uint8Array(await blob.arrayBuffer()));
+    await writeImage(image);
+    return true;
+  } catch {
+    /* fall back to the web clipboard below */
+  }
+  await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
   return true;
 }
