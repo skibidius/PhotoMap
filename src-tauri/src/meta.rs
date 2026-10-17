@@ -36,11 +36,25 @@ pub fn hash_path(s: &str) -> u64 {
     h
 }
 
-/// Convert the three RATIONAL values of a GPS DMS coordinate to decimal.
-fn to_dms(r: &[exif::Rational]) -> f64 {
-    let d = r.first().map(|x| x.to_f64()).unwrap_or(0.0);
-    let m = r.get(1).map(|x| x.to_f64()).unwrap_or(0.0);
-    let s = r.get(2).map(|x| x.to_f64()).unwrap_or(0.0);
+/// Read a RATIONAL or SRATIONAL list as f64. Some cameras store GPS
+/// coordinates as SRATIONAL even though the spec says RATIONAL.
+fn rationals(v: &exif::Value) -> Option<Vec<f64>> {
+    match v {
+        exif::Value::Rational(r) => Some(r.iter().map(|x| x.to_f64()).collect()),
+        exif::Value::SRational(r) => Some(r.iter().map(|x| x.to_f64()).collect()),
+        _ => None,
+    }
+}
+
+fn first_rational(v: &exif::Value) -> Option<f64> {
+    rationals(v).and_then(|r| r.first().copied())
+}
+
+/// Convert three DMS values (degrees, minutes, seconds) to decimal degrees.
+fn to_dms(r: &[f64]) -> f64 {
+    let d = r.first().copied().unwrap_or(0.0);
+    let m = r.get(1).copied().unwrap_or(0.0);
+    let s = r.get(2).copied().unwrap_or(0.0);
     d + m / 60.0 + s / 3600.0
 }
 
@@ -103,27 +117,23 @@ pub fn extract(path: &Path) -> Option<GpsData> {
     for f in exif.fields() {
         let t = f.tag;
         if t == exif::Tag::GPSLatitude {
-            if let exif::Value::Rational(ref v) = f.value {
-                lat = Some(to_dms(v));
+            if let Some(v) = rationals(&f.value) {
+                lat = Some(to_dms(&v));
             }
         } else if t == exif::Tag::GPSLatitudeRef {
             lat_ref = ascii_byte(&f.value);
         } else if t == exif::Tag::GPSLongitude {
-            if let exif::Value::Rational(ref v) = f.value {
-                lon = Some(to_dms(v));
+            if let Some(v) = rationals(&f.value) {
+                lon = Some(to_dms(&v));
             }
         } else if t == exif::Tag::GPSLongitudeRef {
             lon_ref = ascii_byte(&f.value);
         } else if t == exif::Tag::GPSImgDirection {
-            if let exif::Value::Rational(ref v) = f.value {
-                azimuth = v.first().map(|x| x.to_f64());
-            }
+            azimuth = first_rational(&f.value);
         } else if t == exif::Tag::GPSImgDirectionRef {
             azimuth_ref = ascii_byte(&f.value);
         } else if t == exif::Tag::GPSAltitude {
-            if let exif::Value::Rational(ref v) = f.value {
-                altitude = v.first().map(|x| x.to_f64());
-            }
+            altitude = first_rational(&f.value);
         } else if t == exif::Tag::DateTimeOriginal {
             if let exif::Value::Ascii(ref v) = f.value {
                 if let Some(s) = v.first() {
@@ -135,15 +145,13 @@ pub fn extract(path: &Path) -> Option<GpsData> {
         } else if t == exif::Tag::Orientation {
             orientation = f.value.get_uint(0).unwrap_or(1);
         } else if t == exif::Tag::FocalLength {
-            if let exif::Value::Rational(ref v) = f.value {
-                focal_length = v.first().map(|x| x.to_f64());
-            }
+            focal_length = first_rational(&f.value);
         } else if t == exif::Tag::FocalLengthIn35mmFilm {
-            if let Some(v) = f.value.get_uint(0) {
-                focal_length_35 = Some(v as f64);
-            } else if let exif::Value::Rational(ref v) = f.value {
-                focal_length_35 = v.first().map(|x| x.to_f64());
-            }
+            focal_length_35 = f
+                .value
+                .get_uint(0)
+                .map(|x| x as f64)
+                .or_else(|| first_rational(&f.value));
         }
     }
 

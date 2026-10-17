@@ -10,6 +10,7 @@ src-tauri/gen/
 
 # Local test photos (never published)
 testphoto/
+Quick/
 
 # Misc
 .DS_Store
