@@ -1,0 +1,31 @@
+[package]
+name = "photomap"
+version = "0.1.0"
+description = "Lightweight desktop app to show geotagged photos on a map"
+authors = ["skibidius"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "photomap_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+kamadak-exif = "0.6"
+image = "0.25"
+ureq = "2"
+walkdir = "2"
+base64 = "0.22"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

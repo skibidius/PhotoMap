@@ -1,0 +1,27 @@
+{
+  "name": "photomap",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Lightweight desktop app to show geotagged photos on a map",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@material/material-color-utilities": "^0.3.0",
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/leaflet": "^1.9.12",
+    "@types/leaflet.markercluster": "^1.5.4",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}
