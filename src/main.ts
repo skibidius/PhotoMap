@@ -137,7 +137,8 @@ function select(id: string, fromMap: boolean): void {
   // Clicking a marker should not move the map (it also keeps spiderfied
   // clusters open); picking from the list should centre it.
   selectPhoto(id, { pan: !fromMap });
-  highlight(id, !fromMap);
+  // Always scroll the sidebar to the chosen photo (no-op if already visible).
+  highlight(id, true);
 }
 
 function deselect(): void {
@@ -518,7 +519,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.7`;
+        aboutVersion.textContent = `${t('version')} 0.1.8`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));
