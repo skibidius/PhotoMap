@@ -63,7 +63,7 @@ for i, ((t, b), (name, lat, lon, az, f35, fov, dt)) in enumerate(zip(THUMBS, PHO
     entries.append(
         "  {\n"
         f"    id: 'demo{i}',\n"
-        f"    path: 'demo/{name}',\n"
+        f"    path: 'data:image/png;base64,{b64}',\n"
         f"    album: '{ALBUMS[i]}',\n"
         f"    name: '{name}',\n"
         f"    latitude: {lat},\n"

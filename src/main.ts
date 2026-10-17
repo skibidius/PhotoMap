@@ -18,10 +18,10 @@ import {
 } from './map';
 import { initSidebar, render, highlight, clearHighlight, filterPhotos } from './sidebar';
 import { initLightbox, open as openLightbox } from './lightbox';
-import { exportKml, exportGeoJson, exportScreenshot } from './export';
+import { exportKml, exportGeoJson, exportScreenshot, copyScreenshot } from './export';
 import { initTooltips } from './tooltip';
 import { checkForUpdates } from './updater';
-import { clearImageCache } from './util';
+import { initContextMenu } from './contextmenu';
 import type { Photo, ScanSummary } from './types';
 
 // Import last so its rules win over Leaflet's defaults.
@@ -45,6 +45,7 @@ let selectedId: string | null = null;
 let filter = '';
 let album = 'all';
 let sortBy: 'date' | 'name' = 'date';
+let showLabels = localStorage.getItem('photomap.labels') === '1';
 
 // DOM
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -72,6 +73,7 @@ const settingsBtn = $('settings-btn');
 const settingsPanel = $('settings-panel');
 const settingsClose = $('settings-close');
 const checkUpdatesBtn = $('check-updates-btn');
+const labelsToggle = $<HTMLInputElement>('labels-toggle');
 const accentPresets = $('accent-presets');
 const accentCustom = $<HTMLInputElement>('accent-custom');
 const emptyState = $('empty-state');
@@ -123,7 +125,9 @@ function rebuildAlbumFilter(): void {
 
 function select(id: string, fromMap: boolean): void {
   selectedId = id;
-  selectPhoto(id, { pan: true });
+  // Clicking a marker should not move the map (it also keeps spiderfied
+  // clusters open); picking from the list should centre it.
+  selectPhoto(id, { pan: !fromMap });
   highlight(id, !fromMap);
 }
 
@@ -139,6 +143,21 @@ function openViewer(id: string): void {
 
 function toggleEmptyState(): void {
   emptyState.classList.toggle('hidden', photos.length > 0);
+}
+
+function applyLabels(): void {
+  document.getElementById('map')?.classList.toggle('show-labels', showLabels);
+  if (labelsToggle) labelsToggle.checked = showLabels;
+}
+
+async function copyTextToClipboard(text: string): Promise<void> {
+  try {
+    const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
+    await writeText(text);
+    toast(t('copied'));
+  } catch {
+    toast(t('copyError'));
+  }
 }
 
 function clearAll(): void {
@@ -205,7 +224,6 @@ function applySummary(summary: ScanSummary): void {
 }
 
 function setPhotoList(list: Photo[]): void {
-  clearImageCache();
   photos = list;
   selectedId = null;
   buildAlbums();
@@ -324,6 +342,10 @@ function init(): void {
     onReveal: (id) => void reveal(id),
   });
   initLightbox((id) => void reveal(id));
+  initContextMenu(
+    (id) => photos.find((p) => p.id === id),
+    (text) => void copyTextToClipboard(text),
+  );
 
   emptyImportBtn.addEventListener('click', () => void importFolder());
   fitBtn.addEventListener('click', () => fitToPhotos());
@@ -425,7 +447,18 @@ function init(): void {
   }
   $('export-kml').addEventListener('click', () => void runExport(() => exportKml(photos)));
   $('export-geojson').addEventListener('click', () => void runExport(() => exportGeoJson(photos)));
-  $('export-png').addEventListener('click', () => void runExport(() => exportScreenshot(photos, albumColors)));
+  $('export-png').addEventListener('click', () =>
+    void runExport(() => exportScreenshot(photos, albumColors, showLabels)),
+  );
+  $('export-copy').addEventListener('click', async () => {
+    exportMenu.classList.add('hidden');
+    try {
+      const ok = await copyScreenshot(photos, albumColors, showLabels);
+      if (ok) toast(t('copied'));
+    } catch {
+      toast(t('copyError'));
+    }
+  });
 
   themeBtn.addEventListener('click', () => {
     const dark = document.documentElement.dataset.scheme === 'dark';
@@ -461,12 +494,19 @@ function init(): void {
     syncControls();
   });
 
+  labelsToggle.addEventListener('change', () => {
+    showLabels = labelsToggle.checked;
+    localStorage.setItem('photomap.labels', showLabels ? '1' : '0');
+    applyLabels();
+  });
+
   renderAccentPresets();
   populateBasemaps();
   applyStaticLabels();
   rebuildAlbumFilter();
   refreshSidebar();
   toggleEmptyState();
+  applyLabels();
   syncControls();
 
   void initDragDrop();

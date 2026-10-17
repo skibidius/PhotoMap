@@ -68,6 +68,14 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   letter-spacing: 0.1px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .material-symbols-rounded {
@@ -357,6 +365,27 @@ body {
   color: var(--md-primary);
 }
 
+/* Floating right-click menu (reuses .menu-item). */
+.context-menu {
+  position: fixed;
+  z-index: 1800;
+  left: 0;
+  top: 0;
+  min-width: 232px;
+  max-width: 340px;
+  background: var(--md-surface-container);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 6px 0;
+  overflow: hidden;
+}
+
+.context-sep {
+  height: 1px;
+  margin: 6px 0;
+  background: var(--md-divider);
+}
+
 /* ---------- Main layout ---------- */
 #main {
   position: relative;
@@ -525,6 +554,12 @@ body {
   border: none;
 }
 
+.pm-marker {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
 .pm-marker svg {
   transition: transform 0.15s ease;
   overflow: visible;
@@ -541,6 +576,31 @@ body {
 
 .leaflet-marker-icon.pm-selected .pm-marker .ring {
   opacity: 1;
+}
+
+.pm-label {
+  display: none;
+  position: absolute;
+  left: 42px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--md-surface) 90%, transparent);
+  color: var(--md-on-surface);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 17px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+#map.show-labels .pm-label {
+  display: block;
 }
 
 .cluster-icon {
@@ -879,6 +939,51 @@ body {
   background: var(--md-secondary-container);
   color: var(--md-on-secondary-container);
   font-weight: 500;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+  font-size: 14px;
+  color: var(--md-on-surface);
+  cursor: pointer;
+}
+
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--md-surface-container-highest);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--md-outline);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.switch:checked {
+  background: var(--md-primary);
+}
+
+.switch:checked::after {
+  transform: translateX(18px);
+  background: var(--md-on-primary);
 }
 
 .accent-presets {

@@ -3,7 +3,7 @@
 
 import type { Photo } from './types';
 import { t } from './i18n';
-import { loadImageUrl, formatCoord, escapeHtml } from './util';
+import { photoSrc, formatCoord, escapeHtml } from './util';
 
 export interface SidebarCallbacks {
   onSelect: (id: string) => void;
@@ -24,15 +24,9 @@ export function initSidebar(el: HTMLElement, callbacks: SidebarCallbacks): void 
         if (!entry.isIntersecting) continue;
         const img = entry.target as HTMLImageElement;
         observer?.unobserve(img);
-        const path = img.dataset.src;
-        if (!path) continue;
-        loadImageUrl(path)
-          .then((url) => {
-            img.src = url;
-          })
-          .catch(() => {
-            img.classList.add('failed');
-          });
+        const src = img.dataset.src;
+        if (!src) continue;
+        img.src = src;
       }
     },
     { root: el, rootMargin: '200px' },
@@ -64,7 +58,7 @@ function itemHtml(p: Photo): string {
   const dir = p.azimuth != null ? `${p.azimuth.toFixed(0)}°` : '';
   const sub = [date, p.album].filter(Boolean).join(' · ');
   const coords = `${formatCoord(p.latitude)}, ${formatCoord(p.longitude)}${dir ? ' · ' + dir : ''}`;
-  const src = p.thumb ?? p.path;
+  const src = photoSrc(p.thumb ?? p.path);
   return `<div class="photo-item" data-id="${p.id}">
     <div class="pi-thumb"><img data-src="${escapeHtml(src)}" alt="" /></div>
     <div class="pi-info">

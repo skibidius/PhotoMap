@@ -9,13 +9,15 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import type { Photo } from './types';
 import { t } from './i18n';
-import { loadImageUrl, escapeHtml, formatCoord } from './util';
+import { photoSrc, escapeHtml, formatCoord } from './util';
 
 export interface BasemapDef {
   key: string;
   label: { ru: string; en: string };
   group: { ru: string; en: string };
   url: string;
+  /** Optional transparent overlay drawn on top (e.g. Yandex hybrid labels). */
+  overlayUrl?: string;
   subdomains?: string;
   maxZoom: number;
   attribution: string;
@@ -59,7 +61,9 @@ export const BASEMAPS: BasemapDef[] = [
     key: 'yandex-hybrid',
     label: { ru: 'Яндекс — гибрид', en: 'Yandex — hybrid' },
     group: { ru: 'Яндекс', en: 'Yandex' },
-    url: 'https://core-sat.maps.yandex.net/tiles?l=sat,skl&x={x}&y={y}&z={z}&scale=1&lang=ru_RU',
+    url: 'https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}&scale=1',
+    overlayUrl:
+      'https://core-renderer-tiles.maps.yandex.net/tiles?l=skl&x={x}&y={y}&z={z}&scale=1&lang=ru_RU',
     maxZoom: 19,
     attribution: '&copy; Яндекс',
   },
@@ -96,6 +100,7 @@ const DEFAULT_BASEMAP = 'yandex-map';
 
 let map: L.Map;
 let baseLayer: L.TileLayer | null = null;
+let overlayLayer: L.TileLayer | null = null;
 let cluster: L.MarkerClusterGroup;
 let currentBasemap: BasemapDef = BASEMAPS[0];
 
@@ -166,17 +171,19 @@ function conePath(fov: number): string {
   return `M28 28 L${lx.toFixed(2)} ${ly.toFixed(2)} L${rx.toFixed(2)} ${ly.toFixed(2)} Z`;
 }
 
-function markerHtml(color: string, azimuth: number | null, fov: number): string {
+function markerHtml(color: string, azimuth: number | null, fov: number, name: string): string {
   const cone =
     azimuth != null
       ? `<path d="${conePath(fov)}" fill="${color}" fill-opacity="0.28"/>`
       : '';
+  const label = escapeHtml(name.replace(/\.[^.]+$/, ''));
   return `<div class="pm-marker">
     <svg width="56" height="56" viewBox="0 0 56 56">
       <g transform="rotate(${azimuth ?? 0} 28 28)">${cone}</g>
       <circle class="dot" cx="28" cy="28" r="7.5" fill="${color}" stroke="#fff" stroke-width="2.5"/>
       <circle class="ring" cx="28" cy="28" r="13.5" fill="none" stroke="${color}" stroke-width="3"/>
     </svg>
+    <span class="pm-label">${label}</span>
   </div>`;
 }
 
@@ -190,7 +197,7 @@ export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
     const color = colors.get(p.album) ?? '#6750a4';
     const icon = L.divIcon({
       className: 'pm-marker-icon',
-      html: markerHtml(color, p.azimuth, p.fov || 55),
+      html: markerHtml(color, p.azimuth, p.fov || 55, p.name),
       iconSize: [56, 56],
       iconAnchor: [28, 28],
     });
@@ -210,22 +217,29 @@ function popupHtml(p: Photo): string {
   const azRef = p.azimuth_ref === 'M' ? ` (${t('azimuthMagnetic')})` : '';
   const focal = p.focal_length_35 ?? p.focal_length;
   const rows = [
-    [t('datetime'), p.datetime ?? '—'],
-    [t('latitude'), formatCoord(p.latitude)],
-    [t('longitude'), formatCoord(p.longitude)],
-    [t('azimuth'), az + azRef],
-    [t('fov'), p.fov ? `${p.fov.toFixed(0)}°` : '—'],
-    [t('focal'), focal != null ? `${focal.toFixed(0)} mm` : '—'],
-    [t('altitude'), p.altitude != null ? `${p.altitude.toFixed(0)} m` : '—'],
+    { k: t('datetime'), v: p.datetime ?? '—' },
+    { k: t('latitude'), v: formatCoord(p.latitude), sel: true },
+    { k: t('longitude'), v: formatCoord(p.longitude), sel: true },
+    { k: t('azimuth'), v: az + azRef },
+    { k: t('fov'), v: p.fov ? `${p.fov.toFixed(0)}°` : '—' },
+    { k: t('focal'), v: focal != null ? `${focal.toFixed(0)} mm` : '—' },
+    { k: t('altitude'), v: p.altitude != null ? `${p.altitude.toFixed(0)} m` : '—' },
   ]
-    .map(([k, v]) => `<div class="pp-row"><span>${k}</span><b>${escapeHtml(String(v))}</b></div>`)
+    .map(
+      (r) =>
+        `<div class="pp-row"><span>${r.k}</span><b${r.sel ? ' class="selectable"' : ''}>${escapeHtml(
+          String(r.v),
+        )}</b></div>`,
+    )
     .join('');
 
   return `<div class="popup">
     <button class="popup-close" aria-label="${t('close')}">
       <span class="material-symbols-rounded">close</span>
     </button>
-    <div class="pp-img-wrap"><img id="pp-img-${p.id}" class="pp-img" alt="" /></div>
+    <div class="pp-img-wrap"><img id="pp-img-${p.id}" class="pp-img" src="${photoSrc(
+      p.thumb ?? p.path,
+    )}" alt="" /></div>
     <div class="pp-title">${escapeHtml(p.name)}</div>
     <div class="pp-meta">${rows}</div>
   </div>`;
@@ -249,24 +263,15 @@ export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): vo
 
   const reveal = (): void => {
     marker.getElement()?.classList.add('pm-selected');
-    marker.bindPopup(popupHtml(photo), { closeButton: false, offset: [0, -14] }).openPopup();
+    marker
+      .bindPopup(popupHtml(photo), { closeButton: false, autoPan: false, offset: [0, -14] })
+      .openPopup();
 
     const popupEl = marker.getPopup()?.getElement();
     popupEl?.querySelector('.popup-close')?.addEventListener('click', () => map.closePopup());
-
-    const img = popupEl?.querySelector<HTMLImageElement>('.pp-img') ?? null;
-    const tryLoad = (path: string | null): Promise<string> =>
-      path ? loadImageUrl(path) : Promise.reject(new Error('no image'));
-
-    // Prefer the cached thumbnail, fall back to the original file.
-    tryLoad(photo.thumb)
-      .catch(() => tryLoad(photo.path))
-      .then((url) => {
-        if (img) img.src = url;
-      })
-      .catch(() => {
-        if (img) img.classList.add('failed');
-      });
+    popupEl?.querySelectorAll<HTMLImageElement>('.pp-img').forEach((img) => {
+      img.addEventListener('error', () => img.classList.add('failed'));
+    });
   };
 
   // If the marker is inside a cluster it has no DOM element yet; zoom in until
@@ -295,12 +300,25 @@ export function setBasemap(key: string): void {
   const def = BASEMAPS.find((b) => b.key === key) ?? BASEMAPS[0];
   currentBasemap = def;
   if (baseLayer) map.removeLayer(baseLayer);
+  if (overlayLayer) {
+    map.removeLayer(overlayLayer);
+    overlayLayer = null;
+  }
+
   baseLayer = L.tileLayer(def.url, {
     subdomains: def.subdomains ?? 'abc',
     maxZoom: 22,
     maxNativeZoom: def.maxZoom,
     attribution: def.attribution,
   }).addTo(map);
+
+  if (def.overlayUrl) {
+    overlayLayer = L.tileLayer(def.overlayUrl, {
+      subdomains: def.subdomains ?? 'abc',
+      maxZoom: 22,
+      maxNativeZoom: def.maxZoom,
+    }).addTo(map);
+  }
 }
 
 export function getBasemap(): BasemapDef {

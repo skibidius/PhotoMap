@@ -2,12 +2,11 @@
 
 import type { Photo } from './types';
 import { t } from './i18n';
-import { loadPreviewUrl, loadImageUrlOnce, formatCoord, escapeHtml } from './util';
+import { photoSrc, formatCoord, escapeHtml } from './util';
 
 let photos: Photo[] = [];
 let index = 0;
 let onReveal: (id: string) => void = () => {};
-let currentUrl: string | null = null;
 
 const el = () => document.getElementById('lightbox')!;
 const img = () => document.getElementById('lightbox-img') as HTMLImageElement;
@@ -39,15 +38,7 @@ export function open(list: Photo[], idx: number): void {
 
 export function close(): void {
   el().classList.add('hidden');
-  release();
   img().src = '';
-}
-
-function release(): void {
-  if (currentUrl && currentUrl.startsWith('blob:')) {
-    URL.revokeObjectURL(currentUrl);
-  }
-  currentUrl = null;
 }
 
 function prev(): void {
@@ -67,7 +58,7 @@ function infoHtml(p: Photo): string {
   if (p.datetime) parts.push(p.datetime);
   parts.push(`${formatCoord(p.latitude)}, ${formatCoord(p.longitude)}`);
   if (p.azimuth != null) parts.push(`${t('azimuth')}: ${p.azimuth.toFixed(0)}°`);
-  return `<div class="li-name">${escapeHtml(p.name)}</div><div class="li-sub">${parts
+  return `<div class="li-name">${escapeHtml(p.name)}</div><div class="li-sub selectable">${parts
     .map(escapeHtml)
     .join(' · ')}</div>`;
 }
@@ -75,37 +66,10 @@ function infoHtml(p: Photo): string {
 function show(): void {
   const p = photos[index];
   if (!p) return;
-  release();
   info().innerHTML = infoHtml(p);
   const image = img();
   image.alt = p.name;
   image.classList.remove('failed');
   image.onerror = () => image.classList.add('failed');
-  image.src = '';
-
-  loadBest(p)
-    .then((url) => {
-      currentUrl = url;
-      image.src = url;
-    })
-    .catch(() => {
-      image.classList.add('failed');
-    });
-}
-
-/** Try a resized preview first, then the cached thumbnail, then the original. */
-async function loadBest(p: Photo): Promise<string> {
-  try {
-    return await loadPreviewUrl(p.path, p.orientation);
-  } catch {
-    /* fall through */
-  }
-  if (p.thumb) {
-    try {
-      return await loadImageUrlOnce(p.thumb);
-    } catch {
-      /* fall through */
-    }
-  }
-  return loadImageUrlOnce(p.path);
+  image.src = photoSrc(p.path);
 }

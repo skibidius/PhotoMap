@@ -18,6 +18,7 @@ Built with [Tauri 2](https://v2.tauri.app/).
 - **Material You** look with an accent-color picker and light/dark/system theme.
 - **English and Russian** interface.
 - **Auto-update** — checks for new versions on startup and installs them after you confirm.
+- **Labels & copy** — show photo names on the map and in exports; right-click a photo to copy its coordinates or a Google Maps link; copy the snapshot straight to the clipboard.
 
 ## Screenshots
 

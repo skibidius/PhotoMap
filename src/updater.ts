@@ -4,7 +4,7 @@
 
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { ask, message } from '@tauri-apps/plugin-dialog';
 
 import { t } from './i18n';
 
@@ -13,7 +13,7 @@ export async function checkForUpdates(silent = false): Promise<void> {
     const update = await check();
     if (!update) {
       if (!silent) {
-        await ask(t('upToDate'), { title: 'PhotoMap', kind: 'info' });
+        await message(t('upToDate'), { title: 'PhotoMap', kind: 'info' });
       }
       return;
     }

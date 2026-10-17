@@ -154,10 +154,22 @@ function drawMarker(
   ctx.stroke();
 }
 
-export async function exportScreenshot(
+function baseName(name: string): string {
+  return name.replace(/\.[^.]+$/, '');
+}
+
+function overlaps(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+async function renderSnapshot(
   photos: Photo[],
   albumColors: Map<string, string>,
-): Promise<boolean> {
+  showLabels: boolean,
+): Promise<Blob> {
   const map = getMap();
   const basemap = getBasemap();
   const zoom = Math.round(map.getZoom());
@@ -178,6 +190,12 @@ export async function exportScreenshot(
   ctx.fillStyle = '#d8dde3';
   ctx.fillRect(0, 0, size.x, size.y);
 
+  // Theme colors for labels and cards.
+  const css = getComputedStyle(document.documentElement);
+  const cardBg = css.getPropertyValue('--md-surface-container').trim() || '#ece6f0';
+  const onSurface = css.getPropertyValue('--md-on-surface').trim() || '#1d1b20';
+  const outline = css.getPropertyValue('--md-outline-variant').trim() || '#cac4d0';
+
   // --- tiles ---
   const n = Math.pow(2, tileZoom);
   const T = 256 * tileScale;
@@ -186,32 +204,40 @@ export async function exportScreenshot(
   const minY = Math.floor(topLeft.y / T);
   const maxY = Math.floor((topLeft.y + size.y) / T);
   const subs = basemap.subdomains ?? 'abc';
-  const tileUrl = basemap.url.replace('{r}', '');
 
-  const jobs: Array<{ url: string; dx: number; dy: number }> = [];
-  for (let ty = minY; ty <= maxY; ty++) {
-    if (ty < 0 || ty >= n) continue;
-    for (let tx = minX; tx <= maxX; tx++) {
-      const xx = ((tx % n) + n) % n;
-      const url = tileUrl
-        .replace('{z}', String(tileZoom))
-        .replace('{x}', String(xx))
-        .replace('{y}', String(ty))
-        .replace('{s}', subs[(xx + ty) % subs.length]);
-      jobs.push({ url, dx: xx * T - topLeft.x, dy: ty * T - topLeft.y });
+  const buildJobs = (template: string): Array<{ url: string; dx: number; dy: number }> => {
+    const tpl = template.replace('{r}', '');
+    const out: Array<{ url: string; dx: number; dy: number }> = [];
+    for (let ty = minY; ty <= maxY; ty++) {
+      if (ty < 0 || ty >= n) continue;
+      for (let tx = minX; tx <= maxX; tx++) {
+        const xx = ((tx % n) + n) % n;
+        const url = tpl
+          .replace('{z}', String(tileZoom))
+          .replace('{x}', String(xx))
+          .replace('{y}', String(ty))
+          .replace('{s}', subs[(xx + ty) % subs.length]);
+        out.push({ url, dx: xx * T - topLeft.x, dy: ty * T - topLeft.y });
+      }
     }
-  }
+    return out;
+  };
 
-  await pool(jobs, 8, async (job) => {
-    try {
-      const bytes = await invoke<number[]>('fetch_tile', { url: job.url });
-      const bmp = await createImageBitmap(new Blob([new Uint8Array(bytes)]));
-      ctx.drawImage(bmp, job.dx, job.dy, T, T);
-      bmp.close();
-    } catch {
-      /* a failed tile just stays as the background fill */
-    }
-  });
+  const drawTiles = async (jobs: Array<{ url: string; dx: number; dy: number }>): Promise<void> => {
+    await pool(jobs, 8, async (job) => {
+      try {
+        const bytes = await invoke<number[]>('fetch_tile', { url: job.url });
+        const bmp = await createImageBitmap(new Blob([new Uint8Array(bytes)]));
+        ctx.drawImage(bmp, job.dx, job.dy, T, T);
+        bmp.close();
+      } catch {
+        /* a failed tile just stays as the background fill */
+      }
+    });
+  };
+
+  await drawTiles(buildJobs(basemap.url));
+  if (basemap.overlayUrl) await drawTiles(buildJobs(basemap.overlayUrl));
 
   // --- markers ---
   for (const p of photos) {
@@ -221,11 +247,48 @@ export async function exportScreenshot(
     drawMarker(ctx, pt.x, pt.y, color, p.azimuth, p.fov || 55, 9);
   }
 
-  // --- theme colors for the cards ---
-  const css = getComputedStyle(document.documentElement);
-  const cardBg = css.getPropertyValue('--md-surface-container').trim() || '#ece6f0';
-  const onSurface = css.getPropertyValue('--md-on-surface').trim() || '#1d1b20';
-  const outline = css.getPropertyValue('--md-outline-variant').trim() || '#cac4d0';
+  // --- labels ---
+  if (showLabels) {
+    const placed: Array<{ x: number; y: number; w: number; h: number }> = [];
+    ctx.font = '500 11px "Google Sans", Roboto, sans-serif';
+    for (const p of photos) {
+      const pt = map.project([p.latitude, p.longitude], zoom).subtract(topLeft);
+      if (pt.x < -40 || pt.y < -40 || pt.x > size.x + 40 || pt.y > size.y + 40) continue;
+
+      let text = baseName(p.name);
+      if (text.length > 24) text = `${text.slice(0, 23)}…`;
+      const w = ctx.measureText(text).width + 14;
+      const h = 20;
+
+      const candidates = [
+        { x: pt.x + 14, y: pt.y - h / 2 },
+        { x: pt.x - 14 - w, y: pt.y - h / 2 },
+        { x: pt.x + 14, y: pt.y + 11 },
+        { x: pt.x - 14 - w, y: pt.y + 11 },
+      ];
+
+      let rect: { x: number; y: number; w: number; h: number } | null = null;
+      for (const c of candidates) {
+        const r = { x: c.x, y: c.y, w, h };
+        if (r.x < 4 || r.y < 4 || r.x + r.w > size.x - 4 || r.y + r.h > size.y - 4) continue;
+        if (!placed.some((q) => overlaps(q, r))) {
+          rect = r;
+          break;
+        }
+      }
+      if (!rect) continue;
+
+      roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 7);
+      ctx.fillStyle = cardBg;
+      ctx.fill();
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = onSurface;
+      ctx.fillText(text, rect.x + 7, rect.y + 14);
+      placed.push(rect);
+    }
+  }
 
   // --- header card ---
   const title = `PhotoMap — ${t('photosCount', { n: photos.length })}`;
@@ -312,9 +375,19 @@ export async function exportScreenshot(
   ctx.fillStyle = onSurface;
   ctx.fillText(label, bx + barW / 2 - ctx.measureText(label).width / 2, by - 8);
 
-  // --- encode & save ---
+  // --- encode ---
   const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
   if (!blob) throw new Error('canvas encode failed');
+  return blob;
+}
+
+/** Render the current map view to PNG and save it to a file. */
+export async function exportScreenshot(
+  photos: Photo[],
+  albumColors: Map<string, string>,
+  showLabels: boolean,
+): Promise<boolean> {
+  const blob = await renderSnapshot(photos, albumColors, showLabels);
   const path = await save({
     defaultPath: 'photomap.png',
     filters: [{ name: 'PNG', extensions: ['png'] }],
@@ -322,5 +395,19 @@ export async function exportScreenshot(
   if (!path) return false;
   const u8 = new Uint8Array(await blob.arrayBuffer());
   await invoke('save_bytes', { path, dataB64: toBase64(u8) });
+  return true;
+}
+
+/** Render the current map view to PNG and copy it to the clipboard. */
+export async function copyScreenshot(
+  photos: Photo[],
+  albumColors: Map<string, string>,
+  showLabels: boolean,
+): Promise<boolean> {
+  const blob = await renderSnapshot(photos, albumColors, showLabels);
+  const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager');
+  const { Image } = await import('@tauri-apps/api/image');
+  const image = await Image.fromBytes(new Uint8Array(await blob.arrayBuffer()));
+  await writeImage(image);
   return true;
 }
