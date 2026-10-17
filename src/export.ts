@@ -346,7 +346,7 @@ async function renderSnapshot(
     });
   }
 
-  // --- scale bar ---
+  // --- scale bar (inside a card so it stays readable on any map) ---
   const latRad = (center.lat * Math.PI) / 180;
   const mpp = (156543.03392 * Math.cos(latRad)) / Math.pow(2, zoom);
   const steps = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
@@ -359,8 +359,23 @@ async function renderSnapshot(
   }
   const barW = dist / mpp;
   const label = dist >= 1000 ? `${dist / 1000} km` : `${dist} m`;
-  const bx = size.x - barW - 20;
-  const by = size.y - 36;
+  ctx.font = '500 12px "Google Sans", Roboto, sans-serif';
+  const labelW = ctx.measureText(label).width;
+  const padX = 14;
+  const scaleCardW = Math.max(barW, labelW) + padX * 2;
+  const scaleCardH = 46;
+  const scaleCardX = size.x - scaleCardW - 16;
+  const scaleCardY = size.y - scaleCardH - 16;
+
+  roundRect(ctx, scaleCardX, scaleCardY, scaleCardW, scaleCardH, 10);
+  ctx.fillStyle = cardBg;
+  ctx.fill();
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const bx = scaleCardX + (scaleCardW - barW) / 2;
+  const by = scaleCardY + scaleCardH - 14;
   ctx.strokeStyle = onSurface;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -371,9 +386,9 @@ async function renderSnapshot(
   ctx.moveTo(bx + barW, by - 5);
   ctx.lineTo(bx + barW, by + 5);
   ctx.stroke();
-  ctx.font = '500 12px "Google Sans", Roboto, sans-serif';
+
   ctx.fillStyle = onSurface;
-  ctx.fillText(label, bx + barW / 2 - ctx.measureText(label).width / 2, by - 8);
+  ctx.fillText(label, scaleCardX + (scaleCardW - labelW) / 2, scaleCardY + 18);
 
   // --- encode ---
   const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));

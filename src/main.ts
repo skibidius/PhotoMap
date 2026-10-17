@@ -147,8 +147,13 @@ function deselect(): void {
 }
 
 function openViewer(id: string): void {
-  const idx = currentList.findIndex((p) => p.id === id);
-  if (idx >= 0) openLightbox(currentList, idx);
+  let list = currentList;
+  let idx = list.findIndex((p) => p.id === id);
+  if (idx < 0) {
+    list = photos;
+    idx = photos.findIndex((p) => p.id === id);
+  }
+  if (idx >= 0) openLightbox(list, idx);
 }
 
 function toggleEmptyState(): void {
@@ -352,6 +357,7 @@ function init(): void {
   initMap($('map'), {
     onSelect: (id) => select(id, true),
     onDeselect: () => deselect(),
+    onOpen: (id) => openViewer(id),
   });
   initSidebar($('photo-list'), {
     onSelect: (id) => select(id, false),
@@ -526,7 +532,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.9`;
+        aboutVersion.textContent = `${t('version')} 0.1.10`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));

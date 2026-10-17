@@ -122,9 +122,10 @@ let domBound = false;
 export interface MapCallbacks {
   onSelect: (id: string) => void;
   onDeselect: () => void;
+  onOpen: (id: string) => void;
 }
 
-let callbacks: MapCallbacks = { onSelect: () => {}, onDeselect: () => {} };
+let callbacks: MapCallbacks = { onSelect: () => {}, onDeselect: () => {}, onOpen: () => {} };
 
 function crsOf(def: BasemapDef): 'EPSG3857' | 'EPSG3395' {
   return def.crs ?? 'EPSG3857';
@@ -335,6 +336,10 @@ export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): vo
       map.closePopup();
       clearSelection();
       callbacks.onDeselect();
+    });
+    popupEl?.querySelector('.pp-img-wrap')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      callbacks.onOpen(photo.id);
     });
     popupEl?.querySelectorAll<HTMLImageElement>('.pp-img').forEach((img) => {
       img.addEventListener('error', () => img.classList.add('failed'));
