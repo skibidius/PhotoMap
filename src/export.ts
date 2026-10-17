@@ -225,9 +225,9 @@ export async function exportScreenshot(
   // --- header card ---
   const title = `PhotoMap — ${t('photosCount', { n: photos.length })}`;
   const subtitle = new Date().toLocaleString();
-  ctx.font = '600 18px Roboto, sans-serif';
+  ctx.font = '600 18px "Google Sans", Roboto, sans-serif';
   const titleW = ctx.measureText(title).width;
-  ctx.font = '400 13px Roboto, sans-serif';
+  ctx.font = '400 13px "Google Sans", Roboto, sans-serif';
   const subW = ctx.measureText(subtitle).width;
   const cardW = Math.max(titleW, subW) + 44;
   roundRect(ctx, 16, 16, cardW, 66, 14);
@@ -237,9 +237,9 @@ export async function exportScreenshot(
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.fillStyle = onSurface;
-  ctx.font = '600 18px Roboto, sans-serif';
+  ctx.font = '600 18px "Google Sans", Roboto, sans-serif';
   ctx.fillText(title, 32, 42);
-  ctx.font = '400 13px Roboto, sans-serif';
+  ctx.font = '400 13px "Google Sans", Roboto, sans-serif';
   ctx.fillStyle = onSurface;
   ctx.globalAlpha = 0.7;
   ctx.fillText(subtitle, 32, 66);
@@ -249,7 +249,7 @@ export async function exportScreenshot(
   const albums = [...albumColors.entries()];
   if (albums.length > 0) {
     const legendTitle = t('legend');
-    ctx.font = '600 14px Roboto, sans-serif';
+    ctx.font = '600 14px "Google Sans", Roboto, sans-serif';
     const rows = albums.map(([name, color]) => {
       const count = photos.filter((p) => p.album === name).length;
       return { name, color, count };
@@ -272,7 +272,7 @@ export async function exportScreenshot(
       ctx.arc(16 + pad + 5, y - 4, 5, 0, Math.PI * 2);
       ctx.fillStyle = r.color;
       ctx.fill();
-      ctx.font = '400 13px Roboto, sans-serif';
+      ctx.font = '400 13px "Google Sans", Roboto, sans-serif';
       ctx.fillStyle = onSurface;
       ctx.fillText(`${r.name} (${r.count})`, 16 + pad + 18, y);
     });
@@ -303,7 +303,7 @@ export async function exportScreenshot(
   ctx.moveTo(bx + barW, by - 5);
   ctx.lineTo(bx + barW, by + 5);
   ctx.stroke();
-  ctx.font = '500 12px Roboto, sans-serif';
+  ctx.font = '500 12px "Google Sans", Roboto, sans-serif';
   ctx.fillStyle = onSurface;
   ctx.fillText(label, bx + barW / 2 - ctx.measureText(label).width / 2, by - 8);
 

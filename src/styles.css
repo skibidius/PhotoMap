@@ -56,11 +56,13 @@ body,
 }
 
 body {
-  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Google Sans', 'Google Sans Text', 'Roboto', system-ui, -apple-system,
+    'Segoe UI', sans-serif;
   background: var(--md-background);
   color: var(--md-on-background);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.1px;
 }
 
 .material-symbols-rounded {
@@ -101,6 +103,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: none;
 }
 
 .app-logo {
@@ -111,9 +114,10 @@ body {
 
 .app-title {
   font-weight: 500;
-  font-size: 18px;
-  letter-spacing: 0.2px;
+  font-size: 20px;
+  letter-spacing: -0.2px;
   margin-right: 4px;
+  white-space: nowrap;
 }
 
 .topbar-search {
@@ -161,6 +165,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: none;
 }
 
 /* ---------- Buttons ---------- */
@@ -177,16 +182,27 @@ body {
   border-radius: 20px;
   height: 40px;
   padding: 0 14px;
-  transition: background 0.12s;
-}
-
-.btn:hover {
-  background: var(--md-primary-container);
+  white-space: nowrap;
+  transition: background 0.12s, transform 0.08s;
 }
 
 .btn:active {
   background: var(--md-primary-container);
   filter: brightness(0.96);
+  transform: scale(0.97);
+}
+
+.btn:focus-visible,
+.select:focus-visible,
+.seg:focus-visible,
+.menu-item:focus-visible,
+.accent-dot:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+.btn:hover {
+  background: var(--md-primary-container);
 }
 
 .btn-filled {
@@ -258,6 +274,26 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   padding: 6px;
   z-index: 600;
+}
+
+.menu-wide {
+  min-width: 248px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+}
+
+.menu-group {
+  padding: 10px 14px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+}
+
+.menu-item.active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
 }
 
 .menu-item {
@@ -739,13 +775,13 @@ body {
 .accent-presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 14px;
 }
 
 .accent-dot {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
@@ -882,4 +918,21 @@ body {
 
 #lightbox-img.failed {
   visibility: hidden;
+}
+
+/* Keep the top bar tidy on narrow windows / browser previews. */
+@media (max-width: 1000px) {
+  .app-title {
+    display: none;
+  }
+
+  .topbar-search {
+    max-width: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar-search {
+    display: none;
+  }
 }

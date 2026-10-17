@@ -52,7 +52,8 @@ const importBtn = $('import-btn');
 const emptyImportBtn = $('empty-import-btn');
 const fitBtn = $('fit-btn');
 const searchInput = $<HTMLInputElement>('search-input');
-const basemapSelect = $<HTMLSelectElement>('basemap-select');
+const basemapBtn = $('basemap-btn');
+const basemapMenu = $('basemap-menu');
 const albumFilter = $<HTMLSelectElement>('album-filter');
 const sortSelect = $<HTMLSelectElement>('sort-select');
 const photoCount = $('photo-count');
@@ -223,23 +224,38 @@ function syncControls(): void {
 }
 
 function populateBasemaps(): void {
-  basemapSelect.innerHTML = '';
-  const groups = new Map<string, HTMLOptGroupElement>();
+  const current = getBasemap().key;
+  basemapMenu.innerHTML = '';
+  const groups = new Map<string, HTMLDivElement>();
+
   for (const b of BASEMAPS) {
     const gname = lang() === 'ru' ? b.group.ru : b.group.en;
-    let g = groups.get(gname);
-    if (!g) {
-      g = document.createElement('optgroup');
-      g.label = gname;
-      groups.set(gname, g);
-      basemapSelect.appendChild(g);
+    let group = groups.get(gname);
+    if (!group) {
+      const header = document.createElement('div');
+      header.className = 'menu-group';
+      header.textContent = gname;
+      basemapMenu.appendChild(header);
+      group = document.createElement('div');
+      groups.set(gname, group);
+      basemapMenu.appendChild(group);
     }
-    const opt = document.createElement('option');
-    opt.value = b.key;
-    opt.textContent = lang() === 'ru' ? b.label.ru : b.label.en;
-    g.appendChild(opt);
+
+    const item = document.createElement('button');
+    item.className = 'menu-item' + (b.key === current ? ' active' : '');
+    const icon = document.createElement('span');
+    icon.className = 'material-symbols-rounded';
+    icon.textContent = b.key === current ? 'check' : 'map';
+    const label = document.createElement('span');
+    label.textContent = lang() === 'ru' ? b.label.ru : b.label.en;
+    item.append(icon, label);
+    item.addEventListener('click', () => {
+      setBasemap(b.key);
+      populateBasemaps();
+      basemapMenu.classList.add('hidden');
+    });
+    group.appendChild(item);
   }
-  basemapSelect.value = getBasemap().key;
 }
 
 function renderAccentPresets(): void {
@@ -298,14 +314,25 @@ function init(): void {
     refreshSidebar();
   });
 
-  basemapSelect.addEventListener('change', () => setBasemap(basemapSelect.value));
+  basemapBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = basemapMenu.classList.contains('hidden');
+    exportMenu.classList.add('hidden');
+    basemapMenu.classList.toggle('hidden', !willOpen);
+  });
 
   exportBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    exportMenu.classList.toggle('hidden');
+    const willOpen = exportMenu.classList.contains('hidden');
+    basemapMenu.classList.add('hidden');
+    exportMenu.classList.toggle('hidden', !willOpen);
   });
-  document.addEventListener('click', () => exportMenu.classList.add('hidden'));
+  document.addEventListener('click', () => {
+    exportMenu.classList.add('hidden');
+    basemapMenu.classList.add('hidden');
+  });
   exportMenu.addEventListener('click', (e) => e.stopPropagation());
+  basemapMenu.addEventListener('click', (e) => e.stopPropagation());
   $('export-kml').addEventListener('click', () => void runExport(() => exportKml(photos)));
   $('export-geojson').addEventListener('click', () => void runExport(() => exportGeoJson(photos)));
   $('export-png').addEventListener('click', () => void runExport(() => exportScreenshot(photos, albumColors)));

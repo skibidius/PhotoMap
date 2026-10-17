@@ -9,6 +9,8 @@ style (colored dots + direction cones) and a legend, inside a faithful layout
 import io
 import math
 import os
+import re
+import tempfile
 import urllib.request
 
 from PIL import Image, ImageDraw, ImageFont
@@ -39,7 +41,54 @@ ALBUM_COLORS = {"Moscow": (103, 80, 164), "Park": (11, 87, 208)}
 ALBUM_ORDER = ["Moscow", "Park"]
 
 
+_FONT_PATHS = {}
+
+
+def _google_sans_path(weight):
+    if weight in _FONT_PATHS:
+        return _FONT_PATHS[weight]
+    try:
+        cache_dir = os.path.join(tempfile.gettempdir(), "photomap-fonts")
+        os.makedirs(cache_dir, exist_ok=True)
+        path = os.path.join(cache_dir, f"GoogleSans-{weight}.ttf")
+        if not os.path.exists(path):
+            css_url = (
+                "https://fonts.googleapis.com/css2?family=Google+Sans:"
+                "wght@400;500;700&display=swap"
+            )
+            req = urllib.request.Request(css_url, headers={"User-Agent": "Mozilla/5.0"})
+            css = urllib.request.urlopen(req, timeout=20).read().decode()
+            urls = {}
+            for block in re.findall(r"@font-face\s*\{(.*?)\}", css, re.S):
+                mw = re.search(r"font-weight:\s*(\d+)", block)
+                mu = re.search(r"url\((https://[^)]+)\)", block)
+                if mw and mu:
+                    urls[int(mw.group(1))] = mu.group(1)
+            src = urls.get(weight) or urls.get(400)
+            if src:
+                data = urllib.request.urlopen(
+                    urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"}),
+                    timeout=20,
+                ).read()
+                with open(path, "wb") as fh:
+                    fh.write(data)
+        if os.path.exists(path):
+            _FONT_PATHS[weight] = path
+            return path
+    except Exception:
+        pass
+    return None
+
+
 def load_font(size, bold=False):
+    weight = 500 if bold else 400
+    p = _google_sans_path(weight)
+    if p:
+        try:
+            return ImageFont.truetype(p, size)
+        except Exception:
+            pass
+    # Fallbacks if the font could not be downloaded.
     candidates = []
     if bold:
         candidates += [
@@ -50,10 +99,10 @@ def load_font(size, bold=False):
         "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/System/Library/Fonts/Helvetica.ttc",
     ]
-    for p in candidates:
-        if os.path.exists(p):
+    for cp in candidates:
+        if os.path.exists(cp):
             try:
-                return ImageFont.truetype(p, size)
+                return ImageFont.truetype(cp, size)
             except Exception:
                 continue
     return ImageFont.load_default()
@@ -117,27 +166,42 @@ def draw_map_screenshot():
     d.line([(sx0 + 24, sy0 + 26), (sx0 + 29, sy0 + 31)], fill=ON_SURFACE_VARIANT, width=2)
     d.text((sx0 + 36, sy0 + 16), "Search by name…", font=load_font(14), fill=ON_SURFACE_VARIANT)
 
-    # basemap select (right)
-    b0, b1 = W - 360, W - 230
-    d.rounded_rectangle([b0, 12, b1, 52], radius=8, outline=(121, 116, 126), width=1, fill=(255, 255, 255))
-    d.text((b0 + 12, 20), "Yandex — map", font=load_font(14), fill=ON_SURFACE)
-    d.polygon([(b1 - 24, 28), (b1 - 12, 28), (b1 - 18, 36)], fill=ON_SURFACE_VARIANT)
+    # right-side icon buttons: layers, export, theme, language, settings
+    n_btn, btn, gap = 5, 40, 6
+    start = W - 16 - (n_btn * btn + (n_btn - 1) * gap)
+    centers = [start + btn / 2 + i * (btn + gap) for i in range(n_btn)]
+    for cx in centers:
+        d.ellipse(
+            [cx - btn / 2, 12, cx + btn / 2, 12 + btn],
+            fill=(255, 255, 255),
+            outline=ON_SURFACE_VARIANT,
+            width=1,
+        )
 
-    # three icon buttons
-    for i in range(3):
-        cx = b1 + 24 + i * 44
-        d.ellipse([cx - 18, 14, cx + 18, 50], outline=ON_SURFACE_VARIANT, width=1, fill=(255, 255, 255))
-    # export arrow
-    c1 = b1 + 24
-    d.rectangle([c1 - 3, 22, c1 + 3, 36], fill=ON_SURFACE_VARIANT)
-    d.polygon([(c1 - 8, 34), (c1 + 8, 34), (c1, 44)], fill=ON_SURFACE_VARIANT)
+    # layers
+    cx = centers[0]
+    for k in range(3):
+        yy = 25 + k * 5
+        d.polygon(
+            [(cx - 9, yy), (cx, yy - 5), (cx + 9, yy), (cx, yy + 5)],
+            outline=ON_SURFACE_VARIANT,
+            width=1,
+        )
+    # export (down arrow)
+    cx = centers[1]
+    d.rectangle([cx - 3, 22, cx + 3, 34], fill=ON_SURFACE_VARIANT)
+    d.polygon([(cx - 8, 32), (cx + 8, 32), (cx, 42)], fill=ON_SURFACE_VARIANT)
     # theme (half moon)
-    c2 = b1 + 68
-    d.pieslice([c2 - 10, 22, c2 + 10, 42], 90, 270, fill=ON_SURFACE_VARIANT)
+    cx = centers[2]
+    d.pieslice([cx - 10, 20, cx + 10, 40], 90, 270, fill=ON_SURFACE_VARIANT)
+    # language
+    cx = centers[3]
+    tw = d.textlength("EN", font=load_font(12, True))
+    d.text((cx - tw / 2, 21), "EN", font=load_font(12, True), fill=ON_SURFACE_VARIANT)
     # settings (gear)
-    c3 = b1 + 112
-    d.ellipse([c3 - 5, 26, c3 + 5, 38], outline=ON_SURFACE_VARIANT, width=2)
-    d.ellipse([c3 - 2, 29, c3 + 2, 35], fill=ON_SURFACE_VARIANT)
+    cx = centers[4]
+    d.ellipse([cx - 5, 22, cx + 5, 34], outline=ON_SURFACE_VARIANT, width=2)
+    d.ellipse([cx - 2, 25, cx + 2, 31], fill=ON_SURFACE_VARIANT)
 
     # --- sidebar ---
     d.rectangle([0, TOPBAR, SIDEBAR, H], fill=SURFACE_LOW)
