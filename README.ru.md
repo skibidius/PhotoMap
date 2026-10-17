@@ -45,6 +45,45 @@ npm run tauri dev
 
 На Linux дополнительно понадобятся системные библиотеки Tauri (`libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`).
 
+## Локальная сборка
+
+Минуты GitHub Actions не нужны — собирайте каждую ОС на этой же ОС (macOS умеет обе архитектуры Mac, но не соберёт установщики для Windows/Linux).
+
+```bash
+./scripts/build-local.sh
+```
+
+Или вручную:
+
+```bash
+npm install
+npm run tauri build
+```
+
+Установщики появятся в `src-tauri/target/release/bundle/`: `dmg/` и `macos/` на macOS, `msi/` и `nsis/` на Windows, `deb/`, `rpm/` и `appimage/` на Linux.
+
+### Подпись и публикация без Actions
+
+Апдейтер принимает только подписанные артефакты. Ключ лежит в `~/.tauri/photomap.key`:
+
+```bash
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/photomap.key)"
+npm run tauri build
+```
+
+В Windows PowerShell: `$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content "$HOME\.tauri\photomap.key" -Raw`.
+
+Затем опубликуйте релиз и соберите манифест обновления:
+
+```bash
+gh release create v0.1.5 --title "PhotoMap v0.1.5" --notes "Local build"
+gh release upload v0.1.5 $(find src-tauri/target/release/bundle -type f \
+  \( -name '*.dmg' -o -name '*.msi' -o -name '*-setup.exe' -o -name '*.deb' \
+  -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.app.tar.gz' -o -name '*.sig' \))
+python3 scripts/make_latest.py --repo skibidius/PhotoMap --tag v0.1.5 --version 0.1.5
+gh release upload v0.1.5 src-tauri/target/release/bundle/latest.json
+```
+
 ## Как собрать релиз
 
 Релизы собираются автоматически через GitHub Actions. Поднимите `version` в `src-tauri/tauri.conf.json`, затем:
