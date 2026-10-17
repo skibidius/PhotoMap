@@ -21,6 +21,8 @@ export interface BasemapDef {
   subdomains?: string;
   maxZoom: number;
   attribution: string;
+  /** Yandex raster tiles are EPSG:3395, everything else is EPSG:3857. */
+  crs?: 'EPSG3857' | 'EPSG3395';
 }
 
 export const BASEMAPS: BasemapDef[] = [
@@ -48,6 +50,7 @@ export const BASEMAPS: BasemapDef[] = [
     url: 'https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU',
     maxZoom: 19,
     attribution: '&copy; Яндекс',
+    crs: 'EPSG3395',
   },
   {
     key: 'yandex-sat',
@@ -56,6 +59,7 @@ export const BASEMAPS: BasemapDef[] = [
     url: 'https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}&scale=1&projection=EPSG%3A3395',
     maxZoom: 19,
     attribution: '&copy; Яндекс',
+    crs: 'EPSG3395',
   },
   {
     key: 'yandex-hybrid',
@@ -66,6 +70,7 @@ export const BASEMAPS: BasemapDef[] = [
       'https://core-renderer-tiles.maps.yandex.net/tiles?l=skl&x={x}&y={y}&z={z}&scale=1&lang=ru_RU',
     maxZoom: 19,
     attribution: '&copy; Яндекс',
+    crs: 'EPSG3395',
   },
   {
     key: 'google-map',
@@ -107,6 +112,12 @@ let currentBasemap: BasemapDef = BASEMAPS[0];
 const markers = new Map<string, L.Marker>();
 const photoById = new Map<string, Photo>();
 let selectedId: string | null = null;
+let containerEl: HTMLElement;
+let currentCrs: 'EPSG3857' | 'EPSG3395' = 'EPSG3857';
+let lastPhotos: Photo[] = [];
+let lastColors = new Map<string, string>();
+let resizeObserver: ResizeObserver | null = null;
+let domBound = false;
 
 export interface MapCallbacks {
   onSelect: (id: string) => void;
@@ -115,9 +126,25 @@ export interface MapCallbacks {
 
 let callbacks: MapCallbacks = { onSelect: () => {}, onDeselect: () => {} };
 
-export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
-  callbacks = cbParam;
-  map = L.map(container, {
+function crsOf(def: BasemapDef): 'EPSG3857' | 'EPSG3395' {
+  return def.crs ?? 'EPSG3857';
+}
+
+function leafletCrs(key: 'EPSG3857' | 'EPSG3395'): L.CRS {
+  return key === 'EPSG3395' ? L.CRS.EPSG3395 : L.CRS.EPSG3857;
+}
+
+function onMapClick(): void {
+  if (selectedId) {
+    clearSelection();
+    callbacks.onDeselect();
+  }
+}
+
+function createMap(crsKey: 'EPSG3857' | 'EPSG3395'): void {
+  currentCrs = crsKey;
+  map = L.map(containerEl, {
+    crs: leafletCrs(crsKey),
     zoomControl: true,
     zoomSnap: 1,
     zoomDelta: 1,
@@ -138,32 +165,20 @@ export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
     },
   });
   map.addLayer(cluster);
-
-  setBasemap(DEFAULT_BASEMAP);
   map.attributionControl.setPrefix('');
-
-  // The map lives inside a flex container; re-lay out tiles whenever its size
-  // changes, otherwise tiles can go grey or disappear entirely.
+  map.on('click', onMapClick);
+  map.on('popupclose', onMapClick);
   requestAnimationFrame(() => map.invalidateSize());
-  new ResizeObserver(() => map.invalidateSize()).observe(container);
+  rebuildMarkers();
+}
 
-  // Clicking empty map or closing the popup clears the active photo.
-  map.on('click', () => {
-    if (selectedId) {
-      clearSelection();
-      callbacks.onDeselect();
-    }
-  });
-  map.on('popupclose', () => {
-    if (selectedId) {
-      clearSelection();
-      callbacks.onDeselect();
-    }
-  });
+function bindDom(container: HTMLElement): void {
+  if (domBound) return;
+  domBound = true;
 
   // Robust marker clicks. Leaflet sometimes swallows a marker click right
-  // after a fast drag/pan, so handle clicks in the capture phase instead and
-  // ignore anything that was actually a drag.
+  // after a fast drag/pan, so handle clicks in the capture phase and ignore
+  // anything that was actually a drag.
   let downX = Number.NaN;
   let downY = Number.NaN;
   container.addEventListener(
@@ -191,6 +206,21 @@ export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
   );
 }
 
+export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
+  callbacks = cbParam;
+  containerEl = container;
+  bindDom(container);
+
+  const def = BASEMAPS.find((b) => b.key === DEFAULT_BASEMAP) ?? BASEMAPS[0];
+  createMap(crsOf(def));
+  setBasemap(DEFAULT_BASEMAP);
+
+  if (!resizeObserver) {
+    resizeObserver = new ResizeObserver(() => map.invalidateSize());
+    resizeObserver.observe(container);
+  }
+}
+
 function conePath(fov: number): string {
   const half = (Math.min(fov, 120) / 2) * (Math.PI / 180);
   const r = 24;
@@ -216,14 +246,14 @@ function markerHtml(color: string, azimuth: number | null, fov: number, name: st
   </div>`;
 }
 
-export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
+function rebuildMarkers(): void {
   photoById.clear();
   markers.clear();
   cluster.clearLayers();
 
-  for (const p of photos) {
+  for (const p of lastPhotos) {
     photoById.set(p.id, p);
-    const color = colors.get(p.album) ?? '#6750a4';
+    const color = lastColors.get(p.album) ?? '#6750a4';
     const icon = L.divIcon({
       className: 'pm-marker-icon',
       html: markerHtml(color, p.azimuth, p.fov || 55, p.name),
@@ -237,7 +267,12 @@ export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
     markers.set(p.id, marker);
     cluster.addLayer(marker);
   }
+}
 
+export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
+  lastPhotos = photos;
+  lastColors = colors;
+  rebuildMarkers();
   selectedId = null;
 }
 
@@ -327,12 +362,31 @@ export function fitToPhotos(): void {
 
 export function setBasemap(key: string): void {
   const def = BASEMAPS.find((b) => b.key === key) ?? BASEMAPS[0];
-  currentBasemap = def;
-  if (baseLayer) map.removeLayer(baseLayer);
-  if (overlayLayer) {
-    map.removeLayer(overlayLayer);
+  const newCrs = crsOf(def);
+
+  // Yandex raster tiles use EPSG:3395 while OSM/Google use EPSG:3857. Leaflet
+  // fixes the CRS per map, so rebuild the map when the projection changes.
+  if (newCrs !== currentCrs) {
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    if (selectedId) {
+      selectedId = null;
+      callbacks.onDeselect();
+    }
+    map.remove();
+    baseLayer = null;
     overlayLayer = null;
+    createMap(newCrs);
+    map.setView(center, zoom, { animate: false });
+  } else {
+    if (baseLayer) map.removeLayer(baseLayer);
+    if (overlayLayer) {
+      map.removeLayer(overlayLayer);
+      overlayLayer = null;
+    }
   }
+
+  currentBasemap = def;
 
   baseLayer = L.tileLayer(def.url, {
     subdomains: def.subdomains ?? 'abc',
