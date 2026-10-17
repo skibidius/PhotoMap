@@ -159,7 +159,9 @@ export function applyStaticLabels(): void {
     el.textContent = t(el.dataset.i18n!);
   });
   document.querySelectorAll<HTMLElement>('[data-i18n-title]').forEach((el) => {
-    el.title = t(el.dataset.i18nTitle!);
+    const text = t(el.dataset.i18nTitle!);
+    el.setAttribute('aria-label', text);
+    el.removeAttribute('title');
   });
   document.querySelectorAll<HTMLInputElement>('[data-i18n-placeholder]').forEach((el) => {
     el.placeholder = t(el.dataset.i18nPlaceholder!);

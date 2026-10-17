@@ -1,7 +1,5 @@
 // Application bootstrap and UI wiring.
 
-import './styles.css';
-
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
@@ -21,20 +19,22 @@ import {
 import { initSidebar, render, highlight, filterPhotos } from './sidebar';
 import { initLightbox, open as openLightbox } from './lightbox';
 import { exportKml, exportGeoJson, exportScreenshot } from './export';
+import { initTooltips } from './tooltip';
 import { clearImageCache } from './util';
 import type { Photo, ScanSummary } from './types';
 
+// Import last so its rules win over Leaflet's defaults.
+import './styles.css';
+
 const ALBUM_PALETTE = [
-  '#6750a4',
-  '#0b57d0',
-  '#006c4c',
-  '#b3261e',
-  '#7d5260',
-  '#006a6a',
-  '#825500',
-  '#f47735',
-  '#3f51b5',
-  '#00897b',
+  '#1a73e8',
+  '#188038',
+  '#9334e6',
+  '#d93025',
+  '#e37400',
+  '#007b83',
+  '#d01884',
+  '#3949ab',
 ];
 
 let photos: Photo[] = [];
@@ -243,6 +243,8 @@ function populateBasemaps(): void {
 
     const item = document.createElement('button');
     item.className = 'menu-item' + (b.key === current ? ' active' : '');
+    item.setAttribute('role', 'menuitemradio');
+    item.setAttribute('aria-checked', b.key === current ? 'true' : 'false');
     const icon = document.createElement('span');
     icon.className = 'material-symbols-rounded';
     icon.textContent = b.key === current ? 'check' : 'map';
@@ -285,6 +287,7 @@ function applyLanguage(): void {
 
 function init(): void {
   initTheme();
+  initTooltips();
 
   initMap($('map'), {
     onSelect: (id) => select(id, true),
@@ -314,25 +317,65 @@ function init(): void {
     refreshSidebar();
   });
 
+  const closeMenus = (): void => {
+    exportMenu.classList.add('hidden');
+    basemapMenu.classList.add('hidden');
+  };
+
+  const focusFirstItem = (menu: HTMLElement): void => {
+    const item =
+      menu.querySelector<HTMLElement>('.menu-item.active') ??
+      menu.querySelector<HTMLElement>('.menu-item');
+    item?.focus();
+  };
+
   basemapBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const willOpen = basemapMenu.classList.contains('hidden');
-    exportMenu.classList.add('hidden');
-    basemapMenu.classList.toggle('hidden', !willOpen);
+    closeMenus();
+    if (willOpen) {
+      populateBasemaps();
+      basemapMenu.classList.remove('hidden');
+      focusFirstItem(basemapMenu);
+    }
   });
 
   exportBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const willOpen = exportMenu.classList.contains('hidden');
-    basemapMenu.classList.add('hidden');
-    exportMenu.classList.toggle('hidden', !willOpen);
+    closeMenus();
+    if (willOpen) {
+      exportMenu.classList.remove('hidden');
+      focusFirstItem(exportMenu);
+    }
   });
-  document.addEventListener('click', () => {
-    exportMenu.classList.add('hidden');
-    basemapMenu.classList.add('hidden');
-  });
+
+  document.addEventListener('click', closeMenus);
   exportMenu.addEventListener('click', (e) => e.stopPropagation());
   basemapMenu.addEventListener('click', (e) => e.stopPropagation());
+
+  const menuPairs: Array<{ menu: HTMLElement; trigger: HTMLElement }> = [
+    { menu: basemapMenu, trigger: basemapBtn },
+    { menu: exportMenu, trigger: exportBtn },
+  ];
+  for (const { menu, trigger } of menuPairs) {
+    menu.addEventListener('keydown', (e) => {
+      const items = [...menu.querySelectorAll<HTMLElement>('.menu-item')];
+      if (items.length === 0) return;
+      const idx = items.indexOf(document.activeElement as HTMLElement);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        items[(idx + 1) % items.length].focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        items[(idx - 1 + items.length) % items.length].focus();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMenus();
+        trigger.focus();
+      }
+    });
+  }
   $('export-kml').addEventListener('click', () => void runExport(() => exportKml(photos)));
   $('export-geojson').addEventListener('click', () => void runExport(() => exportGeoJson(photos)));
   $('export-png').addEventListener('click', () => void runExport(() => exportScreenshot(photos, albumColors)));

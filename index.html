@@ -42,26 +42,26 @@
 
         <div class="topbar-right">
           <div class="menu-anchor">
-            <button id="basemap-btn" class="btn btn-icon" data-i18n-title="basemap" title="Base map">
+            <button id="basemap-btn" class="btn btn-icon" data-i18n-title="basemap" aria-haspopup="menu">
               <span class="material-symbols-rounded">layers</span>
             </button>
-            <div id="basemap-menu" class="menu menu-wide hidden"></div>
+            <div id="basemap-menu" class="menu menu-wide hidden" role="menu"></div>
           </div>
 
           <div class="menu-anchor">
-            <button id="export-btn" class="btn btn-icon" data-i18n-title="export" title="Export">
+            <button id="export-btn" class="btn btn-icon" data-i18n-title="export" aria-haspopup="menu">
               <span class="material-symbols-rounded">download</span>
             </button>
-            <div id="export-menu" class="menu hidden">
-              <button id="export-kml" class="menu-item">
+            <div id="export-menu" class="menu hidden" role="menu">
+              <button id="export-kml" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">map</span>
                 <span data-i18n="exportKml">KML</span>
               </button>
-              <button id="export-geojson" class="menu-item">
+              <button id="export-geojson" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">data_object</span>
                 <span data-i18n="exportGeoJson">GeoJSON</span>
               </button>
-              <button id="export-png" class="menu-item">
+              <button id="export-png" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">image</span>
                 <span data-i18n="exportPng">PNG</span>
               </button>
@@ -71,7 +71,7 @@
           <button id="theme-btn" class="btn btn-icon" data-i18n-title="theme" title="Theme">
             <span id="theme-icon" class="material-symbols-rounded">dark_mode</span>
           </button>
-          <button id="lang-btn" class="btn btn-lang" title="Language">EN</button>
+          <button id="lang-btn" class="btn btn-lang" data-i18n-title="language">EN</button>
           <button id="settings-btn" class="btn btn-icon" data-i18n-title="settings" title="Settings">
             <span class="material-symbols-rounded">settings</span>
           </button>
@@ -83,10 +83,10 @@
         <aside id="sidebar" class="sidebar">
           <div class="sidebar-header">
             <div class="sidebar-filters">
-              <select id="album-filter" class="select select-grow" title="Album">
+              <select id="album-filter" class="select select-grow" data-i18n-title="album">
                 <option value="all" data-i18n="allAlbums">All albums</option>
               </select>
-              <select id="sort-select" class="select" title="Sort">
+              <select id="sort-select" class="select" data-i18n-title="sortBy">
                 <option value="date" data-i18n="sortDate">By date</option>
                 <option value="name" data-i18n="sortName">By name</option>
               </select>
@@ -135,7 +135,7 @@
         <div class="settings-card">
           <div class="settings-head">
             <h3 data-i18n="settings">Settings</h3>
-            <button id="settings-close" class="btn btn-icon">
+            <button id="settings-close" class="btn btn-icon" data-i18n-title="close">
               <span class="material-symbols-rounded">close</span>
             </button>
           </div>
@@ -154,7 +154,7 @@
             <div id="accent-presets" class="accent-presets"></div>
             <label class="accent-custom">
               <span data-i18n="custom">Custom</span>
-              <input id="accent-custom" type="color" value="#6750a4" />
+              <input id="accent-custom" type="color" value="#1a73e8" />
             </label>
           </div>
 
@@ -171,20 +171,20 @@
       <!-- Lightbox -->
       <div id="lightbox" class="lightbox hidden">
         <div class="lightbox-top">
-          <button id="lightbox-close" class="btn btn-icon lightbox-close">
+          <button id="lightbox-close" class="btn btn-icon lightbox-close" data-i18n-title="close">
             <span class="material-symbols-rounded">close</span>
           </button>
-          <button id="lightbox-reveal" class="btn btn-icon" data-i18n-title="reveal" title="Reveal">
+          <button id="lightbox-reveal" class="btn btn-icon" data-i18n-title="reveal">
             <span class="material-symbols-rounded">folder_open</span>
           </button>
         </div>
-        <button id="lightbox-prev" class="btn btn-icon lightbox-nav lightbox-prev">
+        <button id="lightbox-prev" class="btn btn-icon lightbox-nav lightbox-prev" data-i18n-title="previous">
           <span class="material-symbols-rounded">chevron_left</span>
         </button>
         <div class="lightbox-stage">
           <img id="lightbox-img" alt="" />
         </div>
-        <button id="lightbox-next" class="btn btn-icon lightbox-nav lightbox-next">
+        <button id="lightbox-next" class="btn btn-icon lightbox-nav lightbox-next" data-i18n-title="next">
           <span class="material-symbols-rounded">chevron_right</span>
         </button>
         <div id="lightbox-info" class="lightbox-info"></div>

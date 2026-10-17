@@ -72,7 +72,7 @@ function itemHtml(p: Photo): string {
       <div class="pi-sub">${escapeHtml(sub)}</div>
       <div class="pi-coords">${coords}</div>
     </div>
-    <button class="pi-reveal btn btn-icon" data-id="${p.id}" title="${t('reveal')}">
+    <button class="pi-reveal btn btn-icon" data-id="${p.id}" data-tooltip="${escapeHtml(t('reveal'))}">
       <span class="material-symbols-rounded">folder_open</span>
     </button>
   </div>`;

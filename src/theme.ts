@@ -12,8 +12,8 @@ export interface ThemePrefs {
 }
 
 export const ACCENT_PRESETS = [
+  '#1a73e8',
   '#6750a4',
-  '#0b57d0',
   '#006c4c',
   '#b3261e',
   '#7d5260',
@@ -61,11 +61,55 @@ const VAR_MAP: Array<[string, string]> = [
   ['surfaceContainerHighest', '--md-surface-container-highest'],
 ];
 
+// Neutral surfaces in the spirit of Google's own apps: white / light grey in
+// light mode, near-black greys in dark mode. Accent colors still come from the
+// seed, but the chrome stays neutral instead of picking up a strong tint.
+const NEUTRAL: Record<'light' | 'dark', Record<string, string>> = {
+  light: {
+    background: '#ffffff',
+    surface: '#ffffff',
+    surfaceContainerLowest: '#ffffff',
+    surfaceContainerLow: '#f8f9fa',
+    surfaceContainer: '#f1f3f4',
+    surfaceContainerHigh: '#e8eaed',
+    surfaceContainerHighest: '#e0e2e6',
+    onSurface: '#1f1f1f',
+    onBackground: '#1f1f1f',
+    onSurfaceVariant: '#5f6368',
+    surfaceVariant: '#f1f3f4',
+    outline: '#80868b',
+    outlineVariant: '#dadce0',
+    surfaceDim: '#dee1e3',
+    surfaceBright: '#ffffff',
+    inverseSurface: '#303134',
+    inverseOnSurface: '#f8f9fa',
+  },
+  dark: {
+    background: '#131314',
+    surface: '#131314',
+    surfaceContainerLowest: '#0e0e0f',
+    surfaceContainerLow: '#1b1b1c',
+    surfaceContainer: '#1f1f20',
+    surfaceContainerHigh: '#292a2b',
+    surfaceContainerHighest: '#343536',
+    onSurface: '#e3e3e3',
+    onBackground: '#e3e3e3',
+    onSurfaceVariant: '#c4c7c5',
+    surfaceVariant: '#444746',
+    outline: '#8e918f',
+    outlineVariant: '#444746',
+    surfaceDim: '#131314',
+    surfaceBright: '#3a3b3c',
+    inverseSurface: '#e3e3e3',
+    inverseOnSurface: '#303134',
+  },
+};
+
 let prefs: ThemePrefs = loadPrefs();
 let media: MediaQueryList | null = null;
 
 function loadPrefs(): ThemePrefs {
-  let seed = '#6750a4';
+  let seed = '#1a73e8';
   let scheme: SchemeName = 'system';
   try {
     const raw = localStorage.getItem('photomap.theme');
@@ -122,13 +166,19 @@ export function applyTheme(): void {
   try {
     argb = argbFromHex(prefs.seed);
   } catch {
-    argb = argbFromHex('#6750a4');
+    argb = argbFromHex('#1a73e8');
   }
 
   const theme = themeFromSourceColor(argb);
   const s = scheme === 'dark' ? theme.schemes.dark : theme.schemes.light;
+  const neutral = NEUTRAL[scheme];
 
   for (const [key, cssVar] of VAR_MAP) {
+    const flat = neutral[key];
+    if (flat) {
+      root.style.setProperty(cssVar, flat);
+      continue;
+    }
     const value = (s as unknown as Record<string, number>)[key];
     if (typeof value === 'number') {
       root.style.setProperty(cssVar, hexFromArgb(value));

@@ -3,45 +3,50 @@
    light fallback for the seed color #6750a4. */
 
 :root {
-  --md-primary: #6750a4;
+  --md-primary: #1a73e8;
   --md-on-primary: #ffffff;
-  --md-primary-container: #eaddff;
-  --md-on-primary-container: #21005d;
-  --md-secondary: #625b71;
+  --md-primary-container: #d3e3fd;
+  --md-on-primary-container: #041e49;
+  --md-secondary: #5f6368;
   --md-on-secondary: #ffffff;
-  --md-secondary-container: #e8def8;
-  --md-on-secondary-container: #1d192b;
-  --md-tertiary: #7d5260;
+  --md-secondary-container: #e8f0fe;
+  --md-on-secondary-container: #174ea6;
+  --md-tertiary: #00639b;
   --md-on-tertiary: #ffffff;
-  --md-tertiary-container: #ffd8e4;
-  --md-on-tertiary-container: #31111d;
+  --md-tertiary-container: #c2e7ff;
+  --md-on-tertiary-container: #001d35;
   --md-error: #b3261e;
   --md-on-error: #ffffff;
   --md-error-container: #f9dedc;
   --md-on-error-container: #410e0b;
-  --md-background: #fef7ff;
-  --md-on-background: #1d1b20;
-  --md-surface: #fef7ff;
-  --md-on-surface: #1d1b20;
-  --md-surface-variant: #e7e0ec;
-  --md-on-surface-variant: #49454f;
-  --md-outline: #79747e;
-  --md-outline-variant: #cac4d0;
-  --md-inverse-surface: #322f35;
-  --md-inverse-on-surface: #f5eff7;
-  --md-inverse-primary: #d0bcff;
+  --md-background: #ffffff;
+  --md-on-background: #1f1f1f;
+  --md-surface: #ffffff;
+  --md-on-surface: #1f1f1f;
+  --md-surface-variant: #f1f3f4;
+  --md-on-surface-variant: #5f6368;
+  --md-outline: #80868b;
+  --md-outline-variant: #dadce0;
+  --md-inverse-surface: #303134;
+  --md-inverse-on-surface: #f8f9fa;
+  --md-inverse-primary: #a8c7fa;
   --md-shadow: #000000;
   --md-scrim: #000000;
-  --md-surface-dim: #ded8e1;
-  --md-surface-bright: #fef7ff;
+  --md-surface-dim: #dee1e3;
+  --md-surface-bright: #ffffff;
   --md-surface-container-lowest: #ffffff;
-  --md-surface-container-low: #f7f2fa;
-  --md-surface-container: #f3edf7;
-  --md-surface-container-high: #ece6f0;
-  --md-surface-container-highest: #e6e0e9;
+  --md-surface-container-low: #f8f9fa;
+  --md-surface-container: #f1f3f4;
+  --md-surface-container-high: #e8eaed;
+  --md-surface-container-highest: #e0e2e6;
 
   --topbar-h: 64px;
   --sidebar-w: 340px;
+  --md-divider: rgba(0, 0, 0, 0.08);
+}
+
+:root[data-scheme='dark'] {
+  --md-divider: rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -94,7 +99,7 @@ body {
   padding: 0 16px;
   background: var(--md-surface);
   color: var(--md-on-surface);
-  border-bottom: 1px solid var(--md-outline-variant);
+  border-bottom: 1px solid var(--md-divider);
   position: relative;
   z-index: 500;
 }
@@ -195,7 +200,6 @@ body {
 .btn:focus-visible,
 .select:focus-visible,
 .seg:focus-visible,
-.menu-item:focus-visible,
 .accent-dot:focus-visible {
   outline: 2px solid var(--md-primary);
   outline-offset: 2px;
@@ -266,34 +270,37 @@ body {
 
 .menu {
   position: absolute;
-  top: 48px;
+  top: calc(100% + 8px);
   right: 0;
-  min-width: 220px;
+  min-width: 204px;
+  max-width: 320px;
   background: var(--md-surface-container);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: 8px 0;
   z-index: 600;
+  overflow: hidden;
 }
 
 .menu-wide {
   min-width: 248px;
-  max-height: calc(100vh - 90px);
+  max-height: calc(100vh - 96px);
   overflow-y: auto;
 }
 
 .menu-group {
-  padding: 10px 14px 4px;
+  padding: 12px 16px 4px;
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.7px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--md-on-surface-variant);
 }
 
-.menu-item.active {
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
+.menu-group:not(:first-child) {
+  border-top: 1px solid var(--md-divider);
+  margin-top: 4px;
+  padding-top: 10px;
 }
 
 .menu-item {
@@ -301,22 +308,38 @@ body {
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 12px 14px;
+  height: 44px;
+  padding: 0 16px;
   border: none;
   background: transparent;
   color: var(--md-on-surface);
   font: inherit;
   font-size: 14px;
-  border-radius: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
   cursor: pointer;
   text-align: left;
 }
 
 .menu-item:hover {
-  background: var(--md-surface-container-high);
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+}
+
+.menu-item:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
 }
 
 .menu-item .material-symbols-rounded {
+  font-size: 20px;
+  color: var(--md-on-surface-variant);
+}
+
+.menu-item.active {
+  color: var(--md-primary);
+}
+
+.menu-item.active .material-symbols-rounded {
   color: var(--md-primary);
 }
 
@@ -333,13 +356,13 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--md-surface-container-low);
-  border-right: 1px solid var(--md-outline-variant);
+  border-right: 1px solid var(--md-divider);
   z-index: 400;
 }
 
 .sidebar-header {
   padding: 12px;
-  border-bottom: 1px solid var(--md-outline-variant);
+  border-bottom: 1px solid var(--md-divider);
 }
 
 .sidebar-filters {
@@ -384,6 +407,7 @@ body {
   flex: 1;
   position: relative;
   background: var(--md-surface-container);
+  font-family: inherit;
 }
 
 /* ---------- Photo list items ---------- */
@@ -524,14 +548,14 @@ body {
   border: 3px solid var(--md-surface-container-lowest);
 }
 
-.leaflet-popup-content-wrapper {
+#map .leaflet-popup-content-wrapper {
   background: var(--md-surface-container);
   color: var(--md-on-surface);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
-.leaflet-popup-tip {
+#map .leaflet-popup-tip {
   background: var(--md-surface-container);
 }
 
@@ -584,20 +608,36 @@ body {
   color: var(--md-on-surface);
 }
 
-.leaflet-control-zoom a {
-  background: var(--md-surface-container-lowest);
-  color: var(--md-on-surface);
-  border-color: var(--md-outline-variant);
+#map .leaflet-control-zoom {
+  border: none !important;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
 
-.leaflet-control-zoom a:hover {
+#map .leaflet-control-zoom a {
+  background: var(--md-surface-container-lowest);
+  color: var(--md-on-surface);
+  border: none;
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+}
+
+#map .leaflet-control-zoom a:hover {
   background: var(--md-surface-container-high);
 }
 
+#map .leaflet-control-zoom a:first-child {
+  border-bottom: 1px solid var(--md-divider);
+}
+
 .leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.7) !important;
-  color: #555;
+  background: color-mix(in srgb, var(--md-surface-container) 85%, transparent) !important;
+  color: var(--md-on-surface-variant) !important;
   font-size: 10px;
+  border-radius: 8px 0 0 0;
+  padding: 2px 6px;
 }
 
 /* ---------- Empty state ---------- */
@@ -712,6 +752,29 @@ body {
   font-size: 14px;
   z-index: 1200;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Tooltips (Material 3 plain tooltip) ---------- */
+.tooltip {
+  position: fixed;
+  z-index: 2000;
+  max-width: 240px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--md-inverse-surface);
+  color: var(--md-inverse-on-surface);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip.visible {
+  opacity: 1;
 }
 
 /* ---------- Settings ---------- */

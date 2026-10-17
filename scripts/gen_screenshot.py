@@ -18,18 +18,18 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "..", "docs", "screenshots")
 
-# Material You palette (seed #6750a4, light scheme)
-PRIMARY = (103, 80, 164)
+# Material You palette (seed #1a73e8, neutral surfaces like Google apps)
+PRIMARY = (26, 115, 232)
 ON_PRIMARY = (255, 255, 255)
-PRIMARY_CONTAINER = (234, 221, 255)
-SURFACE = (254, 247, 255)
-SURFACE_LOW = (247, 242, 250)
-SURFACE_HIGH = (236, 230, 240)
-SURFACE_HIGHEST = (230, 224, 233)
-ON_SURFACE = (29, 27, 32)
-ON_SURFACE_VARIANT = (73, 69, 79)
-OUTLINE_VARIANT = (202, 196, 208)
-SECONDARY_CONTAINER = (232, 222, 248)
+PRIMARY_CONTAINER = (211, 227, 253)
+SURFACE = (255, 255, 255)
+SURFACE_LOW = (248, 249, 250)
+SURFACE_HIGH = (232, 234, 237)
+SURFACE_HIGHEST = (224, 226, 230)
+ON_SURFACE = (31, 31, 31)
+ON_SURFACE_VARIANT = (95, 99, 104)
+OUTLINE_VARIANT = (218, 220, 224)
+SECONDARY_CONTAINER = (232, 240, 254)
 
 # Demo data (mirrors src/demo.ts)
 PHOTOS = [
@@ -37,7 +37,7 @@ PHOTOS = [
     ("IMG_0347.jpg", 55.752000, 37.622500, 130.0, "Moscow", (126, 87, 194), (233, 30, 99)),
     ("IMG_0351.jpg", 55.760500, 37.609500, 240.0, "Park", (255, 167, 38), (230, 81, 0)),
 ]
-ALBUM_COLORS = {"Moscow": (103, 80, 164), "Park": (11, 87, 208)}
+ALBUM_COLORS = {"Moscow": (26, 115, 232), "Park": (24, 128, 56)}
 ALBUM_ORDER = ["Moscow", "Park"]
 
 
@@ -362,7 +362,7 @@ def draw_settings_screenshot():
     y = seg_y + seg_h + 34
     d.text((cx0 + 28, y), "Accent color", font=load_font(13), fill=ON_SURFACE_VARIANT)
     y += 28
-    accents = ["#6750a4", "#0b57d0", "#006c4c", "#b3261e", "#7d5260", "#006a6a", "#825500", "#f47735"]
+    accents = ["#1a73e8", "#6750a4", "#006c4c", "#b3261e", "#7d5260", "#006a6a", "#825500", "#f47735"]
     hex_to_rgb = lambda s: tuple(int(s[i:i + 2], 16) for i in (1, 3, 5))
     for i, a in enumerate(accents):
         x0 = cx0 + 28 + i * 46

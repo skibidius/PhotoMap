@@ -115,7 +115,8 @@ export function initMap(container: HTMLElement, cbParam: MapCallbacks): void {
   map = L.map(container, {
     zoomControl: true,
     worldCopyJump: true,
-    zoomSnap: 0.5,
+    zoomSnap: 1,
+    zoomDelta: 1,
     maxZoom: 22,
   }).setView([55.75, 37.62], 5);
 
