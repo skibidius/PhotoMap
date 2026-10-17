@@ -471,7 +471,7 @@ function init(): void {
     exportMenu.classList.add('hidden');
     try {
       const ok = await copyScreenshot(photos, albumColors, showLabels);
-      if (ok) toast(t('copied'));
+      if (ok) toast(t('mapCopied'));
     } catch {
       toast(t('copyError'));
     }
