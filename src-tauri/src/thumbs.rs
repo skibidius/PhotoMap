@@ -20,7 +20,7 @@ pub fn make_thumbnail(src: &Path, dst: &Path, orientation: u32) -> bool {
         .is_ok()
 }
 
-fn apply_orientation(img: image::DynamicImage, o: u32) -> image::DynamicImage {
+pub fn apply_orientation(img: image::DynamicImage, o: u32) -> image::DynamicImage {
     match o {
         2 => img.fliph(),
         3 => img.rotate180(),

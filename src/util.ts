@@ -43,6 +43,16 @@ export async function loadImageUrlOnce(path: string): Promise<string> {
   return toBlobUrl(bytes, mimeFor(path));
 }
 
+/** Downscaled preview for the full-screen viewer (keeps the IPC payload small). */
+export async function loadPreviewUrl(
+  path: string,
+  orientation = 1,
+  maxPx = 1600,
+): Promise<string> {
+  const bytes = await invoke<number[]>('preview_bytes', { path, maxPx, orientation });
+  return toBlobUrl(bytes, 'image/jpeg');
+}
+
 export function clearImageCache(): void {
   for (const url of cache.values()) URL.revokeObjectURL(url);
   cache.clear();

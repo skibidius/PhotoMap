@@ -161,6 +161,8 @@ export async function exportScreenshot(
   const map = getMap();
   const basemap = getBasemap();
   const zoom = Math.round(map.getZoom());
+  const tileZoom = Math.min(zoom, basemap.maxZoom);
+  const tileScale = Math.pow(2, zoom - tileZoom);
   const size = map.getSize();
   const center = map.getCenter();
   const centerWorld = map.project(center, zoom);
@@ -177,25 +179,25 @@ export async function exportScreenshot(
   ctx.fillRect(0, 0, size.x, size.y);
 
   // --- tiles ---
-  const n = Math.pow(2, zoom);
-  const T = 256;
+  const n = Math.pow(2, tileZoom);
+  const T = 256 * tileScale;
   const minX = Math.floor(topLeft.x / T);
   const maxX = Math.floor((topLeft.x + size.x) / T);
   const minY = Math.floor(topLeft.y / T);
   const maxY = Math.floor((topLeft.y + size.y) / T);
   const subs = basemap.subdomains ?? 'abc';
+  const tileUrl = basemap.url.replace('{r}', '');
 
   const jobs: Array<{ url: string; dx: number; dy: number }> = [];
   for (let ty = minY; ty <= maxY; ty++) {
     if (ty < 0 || ty >= n) continue;
     for (let tx = minX; tx <= maxX; tx++) {
       const xx = ((tx % n) + n) % n;
-      const url = basemap.url
-        .replace('{z}', String(zoom))
+      const url = tileUrl
+        .replace('{z}', String(tileZoom))
         .replace('{x}', String(xx))
         .replace('{y}', String(ty))
-        .replace('{s}', subs[(xx + ty) % subs.length])
-        .replace('{r}', '');
+        .replace('{s}', subs[(xx + ty) % subs.length]);
       jobs.push({ url, dx: xx * T - topLeft.x, dy: ty * T - topLeft.y });
     }
   }

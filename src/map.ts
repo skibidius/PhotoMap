@@ -40,15 +40,6 @@ export const BASEMAPS: BasemapDef[] = [
     attribution: '&copy; OpenStreetMap contributors, &copy; openTopoMap (CC-BY-SA)',
   },
   {
-    key: 'carto',
-    label: { ru: 'CARTO Voyager', en: 'CARTO Voyager' },
-    group: { ru: 'Открытые', en: 'Open' },
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
-    maxZoom: 20,
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-  },
-  {
     key: 'yandex-map',
     label: { ru: 'Яндекс — схема', en: 'Yandex — map' },
     group: { ru: 'Яндекс', en: 'Yandex' },
@@ -61,6 +52,14 @@ export const BASEMAPS: BasemapDef[] = [
     label: { ru: 'Яндекс — спутник', en: 'Yandex — satellite' },
     group: { ru: 'Яндекс', en: 'Yandex' },
     url: 'https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}&scale=1&projection=EPSG%3A3395',
+    maxZoom: 19,
+    attribution: '&copy; Яндекс',
+  },
+  {
+    key: 'yandex-hybrid',
+    label: { ru: 'Яндекс — гибрид', en: 'Yandex — hybrid' },
+    group: { ru: 'Яндекс', en: 'Yandex' },
+    url: 'https://core-sat.maps.yandex.net/tiles?l=sat,skl&x={x}&y={y}&z={z}&scale=1&lang=ru_RU',
     maxZoom: 19,
     attribution: '&copy; Яндекс',
   },
@@ -271,9 +270,12 @@ export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): vo
   };
 
   // If the marker is inside a cluster it has no DOM element yet; zoom in until
-  // it becomes visible, then open its popup.
+  // it becomes visible, then centre it and open its popup.
   if (marker.getElement() == null) {
-    cluster.zoomToShowLayer(marker, reveal);
+    cluster.zoomToShowLayer(marker, () => {
+      map.panTo(marker.getLatLng(), { animate: true, duration: 0.3 });
+      reveal();
+    });
     return;
   }
 
@@ -295,7 +297,7 @@ export function setBasemap(key: string): void {
   if (baseLayer) map.removeLayer(baseLayer);
   baseLayer = L.tileLayer(def.url, {
     subdomains: def.subdomains ?? 'abc',
-    maxZoom: def.maxZoom,
+    maxZoom: 22,
     maxNativeZoom: def.maxZoom,
     attribution: def.attribution,
   }).addTo(map);

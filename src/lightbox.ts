@@ -2,7 +2,7 @@
 
 import type { Photo } from './types';
 import { t } from './i18n';
-import { loadImageUrlOnce, formatCoord, escapeHtml } from './util';
+import { loadPreviewUrl, loadImageUrlOnce, formatCoord, escapeHtml } from './util';
 
 let photos: Photo[] = [];
 let index = 0;
@@ -82,7 +82,8 @@ function show(): void {
   image.classList.remove('failed');
   image.onerror = () => image.classList.add('failed');
   image.src = '';
-  loadImageUrlOnce(p.path)
+
+  loadBest(p)
     .then((url) => {
       currentUrl = url;
       image.src = url;
@@ -90,4 +91,21 @@ function show(): void {
     .catch(() => {
       image.classList.add('failed');
     });
+}
+
+/** Try a resized preview first, then the cached thumbnail, then the original. */
+async function loadBest(p: Photo): Promise<string> {
+  try {
+    return await loadPreviewUrl(p.path, p.orientation);
+  } catch {
+    /* fall through */
+  }
+  if (p.thumb) {
+    try {
+      return await loadImageUrlOnce(p.thumb);
+    } catch {
+      /* fall through */
+    }
+  }
+  return loadImageUrlOnce(p.path);
 }

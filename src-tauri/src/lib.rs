@@ -11,6 +11,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::scan_roots,
             commands::read_file_bytes,
+            commands::preview_bytes,
             commands::fetch_tile,
             commands::save_text,
             commands::save_bytes,

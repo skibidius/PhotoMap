@@ -177,6 +177,22 @@ pub fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     std::fs::read(&path).map_err(|e| e.to_string())
 }
 
+/// Return a downscaled JPEG preview for the full-screen viewer. Sending a
+/// ~300 KB preview over IPC is far cheaper and more reliable than shipping a
+/// multi-megabyte original as a number array.
+#[tauri::command]
+pub fn preview_bytes(path: String, max_px: u32, orientation: u32) -> Result<Vec<u8>, String> {
+    let img = image::open(&path).map_err(|e| e.to_string())?;
+    let img = thumbs::apply_orientation(img, orientation);
+    let side = max_px.max(256);
+    let preview = img.thumbnail(side, side);
+    let mut buf = std::io::Cursor::new(Vec::new());
+    preview
+        .write_to(&mut buf, image::ImageFormat::Jpeg)
+        .map_err(|e| e.to_string())?;
+    Ok(buf.into_inner())
+}
+
 /// Fetch a remote tile through native HTTP, bypassing CORS restrictions that
 /// would break the in-browser screenshot exporter.
 #[tauri::command]
