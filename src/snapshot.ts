@@ -180,7 +180,7 @@ export async function renderSnapshot(
     const pt = map.project([p.latitude, p.longitude], zoom).subtract(topLeft);
     if (pt.x < -40 || pt.y < -40 || pt.x > size.x + 40 || pt.y > size.y + 40) continue;
     const color = albumColors.get(p.album) ?? '#6750a4';
-    drawMarker(ctx, pt.x, pt.y, color, p.azimuth, p.fov || 55, 9);
+    drawMarker(ctx, pt.x, pt.y, color, p.is_pano ? null : p.azimuth, p.fov || 55, 9);
   }
 
   // --- labels ---

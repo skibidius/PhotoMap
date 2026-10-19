@@ -79,10 +79,11 @@ function itemHtml(p: Photo): string {
   const sub = [date, p.album].filter(Boolean).join(' · ');
   const coords = `${formatCoord(p.latitude)}, ${formatCoord(p.longitude)}${dir ? ' · ' + dir : ''}`;
   const src = photoSrc(p.thumb ?? p.path);
+  const pano = p.is_pano ? '<span class="pano-badge">360°</span>' : '';
   return `<div class="photo-item" data-id="${p.id}">
     <div class="pi-thumb"><img data-src="${escapeHtml(src)}" alt="" /></div>
     <div class="pi-info">
-      <div class="pi-name">${escapeHtml(p.name)}</div>
+      <div class="pi-name-row"><div class="pi-name">${escapeHtml(p.name)}</div>${pano}</div>
       <div class="pi-sub">${escapeHtml(sub)}</div>
       <div class="pi-coords">${coords}</div>
     </div>

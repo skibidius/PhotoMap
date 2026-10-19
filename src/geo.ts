@@ -63,6 +63,7 @@ export function buildGeoJson(photos: Photo[]): string {
       datetime: p.datetime ?? null,
       azimuth: p.azimuth,
       altitude: p.altitude,
+      panorama: p.is_pano === true,
     },
   }));
   return JSON.stringify({ type: 'FeatureCollection', features }, null, 2);

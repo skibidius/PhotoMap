@@ -16,3 +16,6 @@ Quick/
 # Misc
 .DS_Store
 *.log
+
+# Local panorama examples (large)
+pano/

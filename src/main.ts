@@ -20,6 +20,7 @@ import {
 } from './map';
 import { initSidebar, render, highlight, clearHighlight, filterPhotos } from './sidebar';
 import { initLightbox, open as openLightbox } from './lightbox';
+import { setPanoLoader } from './pano';
 import { exportKml, exportGeoJson, exportScreenshot, copyScreenshot } from './export';
 import { initTooltips } from './tooltip';
 import { checkForUpdates } from './updater';
@@ -49,6 +50,8 @@ let filter = '';
 let album = 'all';
 let sortBy: 'date' | 'name' = 'date';
 let showLabels = localStorage.getItem('photomap.labels') === '1';
+const panoCache = new Map<string, Blob>();
+const PANO_CACHE_MAX = 8;
 
 // DOM
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -365,6 +368,30 @@ function init(): void {
     onOpen: openViewer,
     onReveal: (id) => void reveal(id),
   });
+
+  // Panoramas are decoded and downscaled by the Rust backend: 14400x7200
+  // originals are too big to hand to the webview as a WebGL texture.
+  setPanoLoader(async (path) => {
+    const cached = panoCache.get(path);
+    if (cached) return cached;
+    try {
+      const data = await invoke<ArrayBuffer | number[]>('pano_preview', {
+        path,
+        maxWidth: 4096,
+      });
+      const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : Uint8Array.from(data);
+      const blob = new Blob([bytes], { type: 'image/jpeg' });
+      if (panoCache.size >= PANO_CACHE_MAX) {
+        const oldest = panoCache.keys().next().value;
+        if (oldest) panoCache.delete(oldest);
+      }
+      panoCache.set(path, blob);
+      return blob;
+    } catch {
+      return null;
+    }
+  });
+
   initLightbox((id) => void reveal(id));
   initContextMenu(
     (id) => photos.find((p) => p.id === id),
@@ -534,7 +561,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.12`;
+        aboutVersion.textContent = `${t('version')} 0.1.13`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));

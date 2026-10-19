@@ -23,6 +23,8 @@ pub struct GpsData {
     pub focal_length_35: Option<f64>,
     /// Horizontal field of view in degrees, derived from the focal length.
     pub fov: f64,
+    /// True for a 360° equirectangular panorama (XMP GPano metadata).
+    pub is_pano: bool,
 }
 
 /// Small stable hash of a path string. Used both as the photo id and as the
@@ -76,6 +78,78 @@ fn parse_datetime(s: &str) -> String {
     out
 }
 
+/// Read the first `max` bytes of a file. XMP lives in an APP1 segment near the
+/// start, so a 30 MB panorama does not have to be loaded just to detect it.
+fn read_prefix(path: &Path, max: usize) -> Option<Vec<u8>> {
+    use std::io::Read;
+    let file = std::fs::File::open(path).ok()?;
+    let mut buf = Vec::with_capacity(max.min(1 << 20));
+    file.take(max as u64).read_to_end(&mut buf).ok()?;
+    Some(buf)
+}
+
+/// Find an XMP attribute such as `GPano:ProjectionType="equirectangular"`.
+/// The prefix buffer contains binary JPEG data too, so this deliberately works
+/// on a lossy UTF-8 view and only looks at the quoted value.
+fn xmp_attr<'a>(s: &'a str, key: &str) -> Option<&'a str> {
+    let mut start = 0;
+    while let Some(rel) = s[start..].find(key) {
+        let after = start + rel + key.len();
+        let rest = s[after..].trim_start();
+        if let Some(rest) = rest.strip_prefix('=') {
+            let rest = rest.trim_start();
+            if let Some(q) = rest.chars().next().filter(|c| *c == '"' || *c == '\'') {
+                let body = &rest[q.len_utf8()..];
+                if let Some(end) = body.find(q) {
+                    return Some(&body[..end]);
+                }
+            }
+        }
+        start = after;
+    }
+    None
+}
+
+struct XmpPano {
+    is_pano: bool,
+    heading: Option<f64>,
+}
+
+fn read_xmp(path: &Path) -> XmpPano {
+    let mut out = XmpPano {
+        is_pano: false,
+        heading: None,
+    };
+    let Some(bytes) = read_prefix(path, 512 * 1024) else {
+        return out;
+    };
+    let s = String::from_utf8_lossy(&bytes);
+
+    let projection = xmp_attr(&s, "GPano:ProjectionType").unwrap_or("");
+    let use_viewer = xmp_attr(&s, "GPano:UsePanoramaViewer").unwrap_or("");
+    let full_w = xmp_attr(&s, "GPano:FullPanoWidthPixels")
+        .and_then(|v| v.parse::<f64>().ok());
+    let full_h = xmp_attr(&s, "GPano:FullPanoHeightPixels")
+        .and_then(|v| v.parse::<f64>().ok());
+
+    out.is_pano = projection.eq_ignore_ascii_case("equirectangular")
+        || use_viewer.eq_ignore_ascii_case("true")
+        || matches!((full_w, full_h), (Some(w), Some(h)) if h > 0.0 && w / h > 1.9 && w / h < 2.1 && w >= 4096.0);
+
+    // DJI writes the gimbal yaw instead of PoseHeadingDegrees; it is a useful
+    // initial heading for the marker and the popup.
+    out.heading = [
+        "GPano:PoseHeadingDegrees",
+        "GPano:InitialViewHeadingDegrees",
+        "drone-dji:GimbalYawDegree",
+        "GimbalYawDegree",
+    ]
+    .iter()
+    .find_map(|key| xmp_attr(&s, key).and_then(|v| v.parse::<f64>().ok()));
+
+    out
+}
+
 /// Horizontal field of view from the focal length, assuming a full-frame
 /// (36 mm) sensor. The 35mm-equivalent value is preferred because it is
 /// independent of the sensor size; a raw focal length below ~8 mm almost
@@ -110,6 +184,8 @@ pub fn extract(path: &Path) -> Option<GpsData> {
     let mut orientation: u32 = 1;
     let mut focal_length: Option<f64> = None;
     let mut focal_length_35: Option<f64> = None;
+    let mut pixel_width: Option<u32> = None;
+    let mut pixel_height: Option<u32> = None;
 
     // Iterate every field regardless of which IFD it lives in; GPS fields are
     // stored in their own sub-IFD and this finds them without hardcoding
@@ -152,6 +228,44 @@ pub fn extract(path: &Path) -> Option<GpsData> {
                 .get_uint(0)
                 .map(|x| x as f64)
                 .or_else(|| first_rational(&f.value));
+        } else if t == exif::Tag::PixelXDimension {
+            pixel_width = f.value.get_uint(0);
+        } else if t == exif::Tag::PixelYDimension {
+            pixel_height = f.value.get_uint(0);
+        } else if t == exif::Tag::ImageWidth {
+            if pixel_width.is_none() {
+                pixel_width = f.value.get_uint(0);
+            }
+        } else if t == exif::Tag::ImageLength {
+            if pixel_height.is_none() {
+                pixel_height = f.value.get_uint(0);
+            }
+        }
+    }
+
+    // 360° equirectangular panoramas are ~2:1 and carry XMP GPano metadata.
+    // Only read the XMP prefix for those (or for JPEGs without dimensions),
+    // so a normal album does not pay for an extra 512 KB read per photo.
+    let ratio = match (pixel_width, pixel_height) {
+        (Some(w), Some(h)) if h > 0 => Some(w as f64 / h as f64),
+        _ => None,
+    };
+    let wide = matches!(ratio, Some(r) if r > 1.9 && r < 2.1) && pixel_width.unwrap_or(0) >= 4096;
+    let is_jpeg = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.eq_ignore_ascii_case("jpg") || s.eq_ignore_ascii_case("jpeg"))
+        .unwrap_or(false);
+
+    let mut is_pano = wide;
+    if wide || (is_jpeg && pixel_width.is_none()) {
+        let xmp = read_xmp(path);
+        is_pano = is_pano || xmp.is_pano;
+        if azimuth.is_none() {
+            if let Some(h) = xmp.heading {
+                azimuth = Some(((h % 360.0) + 360.0) % 360.0);
+                azimuth_ref = Some(b'T');
+            }
         }
     }
 
@@ -170,5 +284,6 @@ pub fn extract(path: &Path) -> Option<GpsData> {
         focal_length,
         focal_length_35,
         fov: fov_from_focal(focal_length_35, focal_length),
+        is_pano,
     })
 }

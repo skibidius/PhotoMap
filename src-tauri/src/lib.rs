@@ -65,6 +65,7 @@ pub fn run() {
             commands::scan_roots,
             commands::read_file_bytes,
             commands::preview_bytes,
+            commands::pano_preview,
             commands::fetch_tile,
             commands::save_text,
             commands::save_bytes,

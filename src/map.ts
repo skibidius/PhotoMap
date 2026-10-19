@@ -230,16 +230,26 @@ function conePath(fov: number): string {
   return `M28 28 L${lx.toFixed(2)} ${ly.toFixed(2)} L${rx.toFixed(2)} ${ly.toFixed(2)} Z`;
 }
 
-function markerHtml(color: string, azimuth: number | null, fov: number, name: string): string {
+function markerHtml(
+  color: string,
+  azimuth: number | null,
+  fov: number,
+  name: string,
+  isPano: boolean,
+): string {
   const cone =
-    azimuth != null
+    azimuth != null && !isPano
       ? `<path d="${conePath(fov)}" fill="${color}" fill-opacity="0.28"/>`
       : '';
+  const panoRing = isPano
+    ? `<circle class="pano-ring" cx="28" cy="28" r="11" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="2 3"/>`
+    : '';
   const label = escapeHtml(name.replace(/\.[^.]+$/, ''));
-  return `<div class="pm-marker">
+  return `<div class="pm-marker${isPano ? ' pm-pano' : ''}">
     <svg width="56" height="56" viewBox="0 0 56 56">
       <g transform="rotate(${azimuth ?? 0} 28 28)">${cone}</g>
       <circle class="dot" cx="28" cy="28" r="7.5" fill="${color}" stroke="#fff" stroke-width="2.5"/>
+      ${panoRing}
       <circle class="ring" cx="28" cy="28" r="13.5" fill="none" stroke="${color}" stroke-width="3"/>
     </svg>
     <span class="pm-label">${label}</span>
@@ -259,7 +269,7 @@ function rebuildMarkers(): void {
     const color = lastColors.get(p.album) ?? '#6750a4';
     const icon = L.divIcon({
       className: 'pm-marker-icon',
-      html: markerHtml(color, p.azimuth, p.fov || 55, p.name),
+      html: markerHtml(color, p.azimuth, p.fov || 55, p.name, p.is_pano === true),
       iconSize: [56, 56],
       iconAnchor: [28, 28],
     });
@@ -289,7 +299,7 @@ function popupHtml(p: Photo): string {
     { k: t('latitude'), v: formatCoord(p.latitude), sel: true },
     { k: t('longitude'), v: formatCoord(p.longitude), sel: true },
     { k: t('azimuth'), v: az + azRef },
-    { k: t('fov'), v: p.fov ? `${p.fov.toFixed(0)}°` : '—' },
+    { k: t('fov'), v: p.is_pano ? '360°' : p.fov ? `${p.fov.toFixed(0)}°` : '—' },
     { k: t('focal'), v: focal != null ? `${focal.toFixed(0)} mm` : '—' },
     { k: t('altitude'), v: p.altitude != null ? `${p.altitude.toFixed(0)} m` : '—' },
   ]
@@ -308,7 +318,7 @@ function popupHtml(p: Photo): string {
     <div class="pp-img-wrap"><img id="pp-img-${p.id}" class="pp-img" src="${photoSrc(
       p.thumb ?? p.path,
     )}" alt="" /></div>
-    <div class="pp-title">${escapeHtml(p.name)}</div>
+    <div class="pp-title">${escapeHtml(p.name)}${p.is_pano ? ' <span class="pano-badge">360°</span>' : ''}</div>
     <div class="pp-meta">${rows}</div>
   </div>`;
 }

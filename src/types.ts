@@ -14,6 +14,8 @@ export interface Photo {
   focal_length: number | null;
   focal_length_35: number | null;
   fov: number;
+  /** True for a 360° equirectangular panorama. */
+  is_pano?: boolean;
 }
 
 export interface ScanSummary {

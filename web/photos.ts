@@ -179,10 +179,34 @@ function fovFromFocal(focal35: number | null, focal: number | null): number {
  * Uses OffscreenCanvas where available; the <img> in the lightbox still gets
  * the full-resolution object URL.
  */
-async function makeThumbnail(file: File): Promise<Blob | null> {
-  let bmp: ImageBitmap;
+async function makeThumbnail(
+  file: File,
+  sourceWidth?: number | null,
+  sourceHeight?: number | null,
+): Promise<Blob | null> {
+  let bmp: ImageBitmap | null = null;
   try {
-    bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    // When the dimensions are known (EXIF usually has them), ask the decoder
+    // for a small bitmap directly. A 14400x7200 panorama then never becomes a
+    // ~400 MB RGBA image just to produce a 400x200 list thumbnail.
+    if (sourceWidth && sourceHeight && sourceWidth > 0 && sourceHeight > 0) {
+      const scale = Math.min(1, THUMB_MAX / Math.max(sourceWidth, sourceHeight));
+      const tw = Math.max(1, Math.round(sourceWidth * scale));
+      const th = Math.max(1, Math.round(sourceHeight * scale));
+      try {
+        bmp = await createImageBitmap(file, {
+          resizeWidth: tw,
+          resizeHeight: th,
+          resizeQuality: 'medium',
+          imageOrientation: 'from-image',
+        });
+      } catch {
+        bmp = null;
+      }
+    }
+    if (!bmp) {
+      bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    }
   } catch {
     return null;
   }
@@ -228,6 +252,17 @@ interface ExifLike {
   Orientation?: unknown;
   GPSAltitude?: unknown;
   altitude?: unknown;
+  ProjectionType?: unknown;
+  UsePanoramaViewer?: unknown;
+  FullPanoWidthPixels?: unknown;
+  FullPanoHeightPixels?: unknown;
+  PoseHeadingDegrees?: unknown;
+  InitialViewHeadingDegrees?: unknown;
+  GimbalYawDegree?: unknown;
+  ExifImageWidth?: unknown;
+  ExifImageHeight?: unknown;
+  ImageWidth?: unknown;
+  ImageHeight?: unknown;
 }
 
 async function photoFromItem(item: ImportItem, id: string): Promise<Photo | null> {
@@ -235,6 +270,7 @@ async function photoFromItem(item: ImportItem, id: string): Promise<Photo | null
     gps: true,
     tiff: true,
     exif: true,
+    xmp: true,
   })) as ExifLike | undefined;
   if (!data) return null;
 
@@ -242,15 +278,55 @@ async function photoFromItem(item: ImportItem, id: string): Promise<Photo | null
   const longitude = toNumber(data.longitude);
   if (latitude == null || longitude == null) return null;
 
+  const orientation = orientationNumber(data.Orientation);
+  const imageWidth = toNumber(data.ExifImageWidth) ?? toNumber(data.ImageWidth);
+  const imageHeight = toNumber(data.ExifImageHeight) ?? toNumber(data.ImageHeight);
+
+  const projection =
+    typeof data.ProjectionType === 'string' ? data.ProjectionType.toLowerCase() : '';
+  const useViewer =
+    data.UsePanoramaViewer === true || String(data.UsePanoramaViewer).toLowerCase() === 'true';
+  const fullW = toNumber(data.FullPanoWidthPixels);
+  const fullH = toNumber(data.FullPanoHeightPixels);
+  const ratio =
+    fullW && fullH && fullH > 0
+      ? fullW / fullH
+      : imageWidth && imageHeight && imageHeight > 0
+        ? imageWidth / imageHeight
+        : 0;
+  const isPano =
+    projection === 'equirectangular' ||
+    useViewer ||
+    (ratio > 1.9 && ratio < 2.1 && (fullW ?? imageWidth ?? 0) >= 4096);
+
+  // DJI panoramas carry the gimbal yaw instead of GPSImgDirection; use it as
+  // the marker/popup heading when the EXIF direction is missing.
+  const heading = toNumber(
+    data.PoseHeadingDegrees ?? data.InitialViewHeadingDegrees ?? data.GimbalYawDegree,
+  );
+  const gpsDirection = toNumber(data.GPSImgDirection);
+  const direction =
+    gpsDirection ?? (isPano && heading != null ? ((heading % 360) + 360) % 360 : null);
+  let directionRef: string | null = null;
+  if (gpsDirection != null) {
+    directionRef =
+      typeof data.GPSImgDirectionRef === 'string' ? data.GPSImgDirectionRef : null;
+  } else if (direction != null) {
+    directionRef = 'T';
+  }
+
+  // EXIF dimensions describe the stored pixels; swap them for orientations
+  // that rotate the image so the thumbnail keeps the right aspect ratio.
+  const swap = orientation >= 5 && orientation <= 8;
+  const thumbW = swap ? imageHeight : imageWidth;
+  const thumbH = swap ? imageWidth : imageHeight;
+
   const fullUrl = URL.createObjectURL(item.file);
-  const thumbBlob = await makeThumbnail(item.file);
+  const thumbBlob = await makeThumbnail(item.file, thumbW, thumbH);
   const thumb = thumbBlob ? URL.createObjectURL(thumbBlob) : fullUrl;
 
   const focal35 = toNumber(data.FocalLengthIn35mmFilm);
   const focal = toNumber(data.FocalLength);
-  const direction = toNumber(data.GPSImgDirection);
-  const directionRef =
-    typeof data.GPSImgDirectionRef === 'string' ? data.GPSImgDirectionRef : null;
 
   return {
     id,
@@ -263,11 +339,12 @@ async function photoFromItem(item: ImportItem, id: string): Promise<Photo | null
     azimuth_ref: directionRef,
     altitude: toNumber(data.GPSAltitude ?? data.altitude),
     datetime: formatDate(data.DateTimeOriginal ?? data.CreateDate ?? data.ModifyDate),
-    orientation: orientationNumber(data.Orientation),
+    orientation,
     thumb,
     focal_length: focal,
     focal_length_35: focal35,
     fov: fovFromFocal(focal35, focal),
+    is_pano: isPano,
   };
 }
 

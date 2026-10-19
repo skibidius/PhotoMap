@@ -24,6 +24,7 @@ pub struct PhotoMeta {
     pub focal_length: Option<f64>,
     pub focal_length_35: Option<f64>,
     pub fov: f64,
+    pub is_pano: bool,
 }
 
 #[derive(Serialize)]
@@ -136,9 +137,10 @@ fn scan_roots_impl(app: tauri::AppHandle, roots: Vec<String>) -> Result<ScanSumm
                 focal_length: data.focal_length,
                 focal_length_35: data.focal_length_35,
                 fov: data.fov,
+                is_pano: data.is_pano,
             });
 
-            if scanned % 20 == 0 {
+            if scanned <= 10 || scanned % 20 == 0 {
                 let _ = app.emit(
                     "scan-progress",
                     ScanProgress {
@@ -189,6 +191,32 @@ pub fn preview_bytes(path: String, max_px: u32, orientation: u32) -> Result<Vec<
     let mut buf = std::io::Cursor::new(Vec::new());
     preview
         .write_to(&mut buf, image::ImageFormat::Jpeg)
+        .map_err(|e| e.to_string())?;
+    Ok(buf.into_inner())
+}
+
+/// Decode a panorama and return a downscaled JPEG for the 360° viewer. This
+/// keeps a 14400x7200 original out of the webview and the WebGL texture well
+/// inside GPU limits. Returned as a raw IPC response (an ArrayBuffer in JS).
+#[tauri::command]
+pub async fn pano_preview(path: String, max_width: u32) -> Result<tauri::ipc::Response, String> {
+    let bytes = tauri::async_runtime::spawn_blocking(move || pano_preview_bytes(path, max_width))
+        .await
+        .map_err(|e| e.to_string())??;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+fn pano_preview_bytes(path: String, max_width: u32) -> Result<Vec<u8>, String> {
+    let img = thumbs::open_image(std::path::Path::new(&path))
+        .ok_or_else(|| "cannot decode panorama".to_string())?;
+    let max = max_width.clamp(512, 4096);
+    let img = if img.width() > max {
+        img.thumbnail(max, u32::MAX)
+    } else {
+        img
+    };
+    let mut buf = std::io::Cursor::new(Vec::new());
+    img.write_to(&mut buf, image::ImageFormat::Jpeg)
         .map_err(|e| e.to_string())?;
     Ok(buf.into_inner())
 }
@@ -293,3 +321,5 @@ pub fn open_url(url: String) -> Result<(), String> {
     }
     Ok(())
 }
+
+

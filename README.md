@@ -14,6 +14,7 @@ Built with [Tauri 2](https://v2.tauri.app/).
 - **Two-way selection** — click a marker and the sidebar scrolls to that photo; click a photo in the sidebar and the map pans to it.
 - **Clustering** for large albums, plus search, album filter and sort by date/name.
 - **Photo viewer** — double-click a photo for a full-screen view with the EXIF details.
+- **360° panoramas** — equirectangular photos are detected from XMP/GPano metadata and open in an interactive viewer: drag to look around, scroll or pinch to zoom.
 - **Export** — KML, GeoJSON, and a PNG snapshot of the current view (with a legend listing albums).
 - **Material You** look with an accent-color picker and light/dark/system theme.
 - **English and Russian** interface.
