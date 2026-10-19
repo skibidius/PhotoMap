@@ -26,6 +26,14 @@
 | --- | --- |
 | ![Фото на карте](docs/screenshots/map.png) | ![Настройки](docs/screenshots/settings.png) |
 
+## Веб-версия
+
+Есть и браузерная версия, которая работает целиком на вашем устройстве: **[skibidius.github.io/PhotoMap](https://skibidius.github.io/PhotoMap/)**.
+
+Интерфейс тот же, EXIF читается локально через [exifr](https://github.com/MikeKovarik/exifr) — фотографии никуда не загружаются. Перетащите папку или нажмите **«Импорт»**. KML и GeoJSON экспортируются всегда; для PNG-снимка нужны тайлы с CORS, поэтому используйте OpenStreetMap или OpenTopoMap (Google и Яндекс не дают прочитать canvas — приложение предупредит).
+
+Локально: `npm run dev:web` (сервер на порту 5174) или `npm run build:web` (сборка в `dist-web/`). Каждый пуш в `main` публикует её на GitHub Pages через `.github/workflows/pages.yml`.
+
 ## Скачать
 
 Готовые сборки — на странице [Releases](../../releases). Для Windows — `.msi` / `.exe`, для macOS — `.dmg` (Intel и Apple Silicon), для Linux — `.deb` и AppImage.

@@ -532,7 +532,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.10`;
+        aboutVersion.textContent = `${t('version')} 0.1.11`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));

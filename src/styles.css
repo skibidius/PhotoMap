@@ -1122,10 +1122,18 @@ textarea {
   height: 52px;
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
+  transition: background 0.12s, transform 0.1s;
 }
 
 .lightbox-nav:hover {
   background: rgba(255, 255, 255, 0.22);
+}
+
+/* Keep the button centred while pressed: the generic .btn:active scale would
+   replace translateY(-50%) and make the arrow jump on every click. */
+.lightbox-nav:active {
+  transform: translateY(-50%) scale(0.98);
+  filter: none;
 }
 
 .lightbox-prev {
@@ -1193,4 +1201,18 @@ textarea {
   .topbar-search {
     display: none;
   }
+}
+
+/* ---------- Web build ---------- */
+/* "Show in folder" is a desktop-only action. */
+html.web .pi-reveal,
+html.web #lightbox-reveal {
+  display: none;
+}
+
+.web-note-text {
+  margin: 0;
+  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  line-height: 1.45;
 }

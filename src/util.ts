@@ -3,7 +3,8 @@
 /** URL for a photo, served by the native `photo` protocol (or passed through
  * for data:/http URLs, used by the demo). */
 export function photoSrc(path: string): string {
-  if (/^(data:|https?:\/\/)/i.test(path)) return path;
+  // data:/http(s): are used by the demo and the web build (object URLs).
+  if (/^(data:|blob:|https?:\/\/)/i.test(path)) return path;
   const base = /Windows/i.test(navigator.userAgent)
     ? 'http://photo.localhost/'
     : 'photo://localhost/';

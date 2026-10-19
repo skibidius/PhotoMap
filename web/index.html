@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta
+      name="description"
+      content="PhotoMap — view geotagged photos on a map with shooting direction. Runs entirely in your browser."
+    />
+    <title>PhotoMap</title>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <span class="app-logo material-symbols-rounded">photo_camera</span>
+          <span class="app-title">PhotoMap</span>
+          <div class="menu-anchor">
+            <button id="import-btn" class="btn btn-filled" aria-haspopup="menu">
+              <span class="material-symbols-rounded">add_photo_alternate</span>
+              <span data-i18n="import">Import</span>
+              <span class="material-symbols-rounded import-arrow">arrow_drop_down</span>
+            </button>
+            <div id="import-menu" class="menu hidden" role="menu">
+              <button id="import-folder" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">folder_open</span>
+                <span data-i18n="importFolder">Import folder</span>
+              </button>
+              <button id="import-files" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">image</span>
+                <span data-i18n="importFiles">Import photos</span>
+              </button>
+            </div>
+          </div>
+          <button id="fit-btn" class="btn btn-icon" data-i18n-title="fit" title="Fit">
+            <span class="material-symbols-rounded">center_focus_strong</span>
+          </button>
+        </div>
+
+        <div class="topbar-search">
+          <span class="material-symbols-rounded search-icon">search</span>
+          <input id="search-input" type="text" data-i18n-placeholder="search" placeholder="Search" />
+        </div>
+
+        <div class="topbar-right">
+          <div class="menu-anchor">
+            <button id="basemap-btn" class="btn btn-icon" data-i18n-title="basemap" aria-haspopup="menu">
+              <span class="material-symbols-rounded">layers</span>
+            </button>
+            <div id="basemap-menu" class="menu menu-wide hidden" role="menu"></div>
+          </div>
+
+          <div class="menu-anchor">
+            <button id="export-btn" class="btn btn-icon" data-i18n-title="export" aria-haspopup="menu">
+              <span class="material-symbols-rounded">download</span>
+            </button>
+            <div id="export-menu" class="menu hidden" role="menu">
+              <button id="export-kml" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">map</span>
+                <span data-i18n="exportKml">KML</span>
+              </button>
+              <button id="export-geojson" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">data_object</span>
+                <span data-i18n="exportGeoJson">GeoJSON</span>
+              </button>
+              <button id="export-png" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">image</span>
+                <span data-i18n="exportPng">PNG</span>
+              </button>
+              <button id="export-copy" class="menu-item" role="menuitem">
+                <span class="material-symbols-rounded">content_copy</span>
+                <span data-i18n="copyImage">Copy image</span>
+              </button>
+            </div>
+          </div>
+
+          <button id="theme-btn" class="btn btn-icon" data-i18n-title="theme" title="Theme">
+            <span id="theme-icon" class="material-symbols-rounded">dark_mode</span>
+          </button>
+          <button id="lang-btn" class="btn btn-lang" data-i18n-title="language">EN</button>
+          <button id="settings-btn" class="btn btn-icon" data-i18n-title="settings" title="Settings">
+            <span class="material-symbols-rounded">settings</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main area -->
+      <div id="main">
+        <aside id="sidebar" class="sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-filters">
+              <select id="album-filter" class="select select-grow" data-i18n-title="album">
+                <option value="all" data-i18n="allAlbums">All albums</option>
+              </select>
+              <select id="sort-select" class="select" data-i18n-title="sortBy">
+                <option value="date" data-i18n="sortDate">By date</option>
+                <option value="name" data-i18n="sortName">By name</option>
+              </select>
+            </div>
+            <div class="sidebar-meta">
+              <div id="photo-count" class="photo-count"></div>
+              <button id="clear-btn" class="btn btn-icon btn-small" data-i18n-title="clear" title="Clear">
+                <span class="material-symbols-rounded">delete_sweep</span>
+              </button>
+            </div>
+          </div>
+          <div id="photo-list" class="photo-list"></div>
+          <div id="no-results" class="no-results hidden" data-i18n="noResults">Nothing found</div>
+        </aside>
+
+        <div id="map"></div>
+
+        <!-- Empty state (over the map only) -->
+        <div id="empty-state" class="empty-state">
+          <span class="empty-icon material-symbols-rounded">explore</span>
+          <h2 data-i18n="emptyTitle">Add your photos</h2>
+          <p data-i18n="emptyText">Drop a folder here or press Import. Coordinates and direction are read from EXIF.</p>
+          <button id="empty-import-btn" class="btn btn-filled btn-large">
+            <span class="material-symbols-rounded">add_photo_alternate</span>
+            <span data-i18n="import">Import</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Drag & drop overlay -->
+      <div id="drop-overlay" class="drop-overlay hidden">
+        <span class="material-symbols-rounded">cloud_upload</span>
+        <p data-i18n="dropHint">Drop to import</p>
+      </div>
+
+      <!-- Scan progress overlay -->
+      <div id="scan-overlay" class="scan-overlay hidden">
+        <div class="scan-card">
+          <div class="spinner"></div>
+          <div id="scan-text" class="scan-text"></div>
+        </div>
+      </div>
+
+      <!-- Settings panel -->
+      <div id="settings-panel" class="settings hidden">
+        <div class="settings-card">
+          <div class="settings-head">
+            <h3 data-i18n="settings">Settings</h3>
+            <button id="settings-close" class="btn btn-icon" data-i18n-title="close">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-label" data-i18n="theme">Theme</div>
+            <div class="segmented">
+              <button class="seg" data-scheme="system" data-i18n="themeSystem">System</button>
+              <button class="seg" data-scheme="light" data-i18n="themeLight">Light</button>
+              <button class="seg" data-scheme="dark" data-i18n="themeDark">Dark</button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-label" data-i18n="accentColor">Accent color</div>
+            <div id="accent-presets" class="accent-presets"></div>
+            <label class="accent-custom">
+              <span data-i18n="custom">Custom</span>
+              <input id="accent-custom" type="color" value="#1a73e8" />
+            </label>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-label" data-i18n="display">Display</div>
+            <label class="switch-row">
+              <span data-i18n="showLabels">Show photo names</span>
+              <input id="labels-toggle" type="checkbox" class="switch" />
+            </label>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-label" data-i18n="language">Language</div>
+            <div class="segmented">
+              <button class="seg" data-lang="ru">Русский</button>
+              <button class="seg" data-lang="en">English</button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-label" data-i18n="updates">Updates</div>
+            <button id="check-updates-btn" class="btn btn-tonal">
+              <span class="material-symbols-rounded">system_update_alt</span>
+              <span data-i18n="checkUpdates">Check for updates</span>
+            </button>
+          </div>
+
+          <div class="settings-section">
+            <button id="about-btn" class="btn btn-tonal">
+              <span class="material-symbols-rounded">info</span>
+              <span data-i18n="about">About</span>
+            </button>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-label" data-i18n="webNoteTitle">Web version</div>
+            <p class="web-note-text" data-i18n="webNote">
+              Photos are read locally in your browser and never uploaded.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div id="about-panel" class="settings hidden">
+        <div class="about-card">
+          <img id="about-logo" class="about-logo" alt="PhotoMap" />
+          <h2>PhotoMap</h2>
+          <div id="about-version" class="about-version"></div>
+          <p class="about-desc" data-i18n="aboutDesc"></p>
+          <div class="about-actions">
+            <button id="about-github" class="btn btn-tonal">
+              <span class="material-symbols-rounded">code</span>
+              <span data-i18n="github">GitHub</span>
+            </button>
+            <button id="about-close" class="btn btn-filled" data-i18n="close">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lightbox -->
+      <div id="lightbox" class="lightbox hidden">
+        <div class="lightbox-top">
+          <button id="lightbox-close" class="btn btn-icon lightbox-close" data-i18n-title="close">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+          <button id="lightbox-reveal" class="btn btn-icon" data-i18n-title="reveal">
+            <span class="material-symbols-rounded">folder_open</span>
+          </button>
+        </div>
+        <button id="lightbox-prev" class="btn btn-icon lightbox-nav lightbox-prev" data-i18n-title="previous">
+          <span class="material-symbols-rounded">chevron_left</span>
+        </button>
+        <div class="lightbox-stage">
+          <img id="lightbox-img" alt="" />
+        </div>
+        <button id="lightbox-next" class="btn btn-icon lightbox-nav lightbox-next" data-i18n-title="next">
+          <span class="material-symbols-rounded">chevron_right</span>
+        </button>
+        <div id="lightbox-info" class="lightbox-info"></div>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>

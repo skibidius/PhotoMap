@@ -26,6 +26,14 @@ Built with [Tauri 2](https://v2.tauri.app/).
 | --- | --- |
 | ![Photos on the map](docs/screenshots/map.png) | ![Settings](docs/screenshots/settings.png) |
 
+## Web version
+
+There's also a browser build that runs entirely on your device: **[skibidius.github.io/PhotoMap](https://skibidius.github.io/PhotoMap/)**.
+
+It uses the same interface and parses EXIF locally with [exifr](https://github.com/MikeKovarik/exifr) — photos are never uploaded. Drag a folder in or use **Import**. KML and GeoJSON export work everywhere; the PNG snapshot needs map tiles that allow CORS, so use OpenStreetMap or OpenTopoMap for it (Google and Yandex block the canvas read, and the app will tell you).
+
+Build it locally with `npm run dev:web` (dev server on port 5174) or `npm run build:web` (output in `dist-web/`). Every push to `main` deploys it to GitHub Pages via `.github/workflows/pages.yml`.
+
 ## Download
 
 Grab an installer from the [Releases](../../releases) page. Windows gets an `.msi` / `.exe`, macOS a `.dmg` (Intel and Apple Silicon), Linux a `.deb` and an AppImage.

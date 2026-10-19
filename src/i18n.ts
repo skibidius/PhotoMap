@@ -82,6 +82,9 @@ const ru: Dict = {
   album: 'Альбом',
   sortBy: 'Сортировка',
   unsupported: 'Формат не поддерживается для предпросмотра',
+  webNoteTitle: 'Веб-версия',
+  webNote: 'Фотографии читаются локально в браузере и никуда не загружаются.',
+  tilesBlocked: 'Тайлы этой подложки не отдают CORS. Для экспорта PNG выберите OpenStreetMap.',
 };
 
 const en: Dict = {
@@ -161,6 +164,9 @@ const en: Dict = {
   album: 'Album',
   sortBy: 'Sort',
   unsupported: 'Preview not supported for this format',
+  webNoteTitle: 'Web version',
+  webNote: 'Photos are read locally in your browser and never uploaded.',
+  tilesBlocked: 'This basemap does not allow CORS. Switch to OpenStreetMap to export a PNG.',
 };
 
 const dicts: Record<Lang, Dict> = { ru, en };
