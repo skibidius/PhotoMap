@@ -52,6 +52,49 @@ void main() {
   gl_FragColor = vec4(texture2D(uTex, uv).rgb, 1.0);
 }`;
 
+// Same mapping, but with an explicit level of detail. Automatic derivatives
+// of atan2 are discontinuous at the 0°/360° seam, which makes the GPU pick a
+// different mip level in one column and draws a dashed vertical line. The LOD
+// below only depends on uniforms, so it is continuous everywhere.
+const FRAG_LOD = `#extension GL_EXT_shader_texture_lod : enable
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uTex;
+uniform float uYaw;
+uniform float uPitch;
+uniform float uFov;
+uniform float uAspect;
+uniform vec2 uTexRes;
+uniform vec2 uRes;
+const float PI = 3.141592653589793;
+void main() {
+  vec2 p = vUv * 2.0 - 1.0;
+  p.x *= uAspect;
+  float tanF = tan(uFov * 0.5);
+  vec3 d = normalize(vec3(p.x * tanF, p.y * tanF, 1.0));
+
+  float cp = cos(uPitch);
+  float sp = sin(uPitch);
+  d = vec3(d.x, d.y * cp + d.z * sp, d.z * cp - d.y * sp);
+
+  float cy = cos(uYaw);
+  float sy = sin(uYaw);
+  d = vec3(d.x * cy + d.z * sy, d.y, d.z * cy - d.x * sy);
+
+  float lon = atan(d.x, d.z);
+  float lat = asin(clamp(d.y, -1.0, 1.0));
+  vec2 uv = vec2(lon / (2.0 * PI) + 0.5, 0.5 - lat / PI);
+
+  // Angular size of one screen pixel and of one texel. Use the larger of the
+  // horizontal/vertical requirements so non-2:1 crops do not alias.
+  float pixAng = 2.0 * tanF / uRes.y;
+  float texAngY = PI / uTexRes.y;
+  float texAngX = 2.0 * PI / uTexRes.x;
+  float lod = max(log2(pixAng / texAngY), log2(pixAng / texAngX));
+  lod = max(lod, 0.0);
+  gl_FragColor = vec4(texture2DLodEXT(uTex, uv, lod).rgb, 1.0);
+}`;
+
 let host: HTMLElement | null = null;
 let canvas: HTMLCanvasElement | null = null;
 let hint: HTMLElement | null = null;
@@ -62,6 +105,11 @@ let uYaw: WebGLUniformLocation | null = null;
 let uPitch: WebGLUniformLocation | null = null;
 let uFov: WebGLUniformLocation | null = null;
 let uAspect: WebGLUniformLocation | null = null;
+let uTexRes: WebGLUniformLocation | null = null;
+let uRes: WebGLUniformLocation | null = null;
+let lodEnabled = false;
+let texWidth = 1;
+let texHeight = 1;
 
 let active = false;
 let raf = 0;
@@ -113,8 +161,12 @@ function setup(): boolean {
   }) as WebGLRenderingContext | null;
   if (!gl) return false;
 
+  // Explicit LOD needs the WebGL1 extension; without it we fall back to a
+  // plain LINEAR texture (no mipmaps) to avoid the dashed seam.
+  lodEnabled = Boolean(gl.getExtension('EXT_shader_texture_lod'));
+
   const vs = compile(gl, gl.VERTEX_SHADER, VERT);
-  const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
+  const fs = compile(gl, gl.FRAGMENT_SHADER, lodEnabled ? FRAG_LOD : FRAG);
   if (!vs || !fs) return false;
 
   program = gl.createProgram();
@@ -144,8 +196,11 @@ function setup(): boolean {
   uPitch = gl.getUniformLocation(program, 'uPitch');
   uFov = gl.getUniformLocation(program, 'uFov');
   uAspect = gl.getUniformLocation(program, 'uAspect');
+  uTexRes = gl.getUniformLocation(program, 'uTexRes');
+  uRes = gl.getUniformLocation(program, 'uRes');
   gl.useProgram(program);
   gl.uniform1i(gl.getUniformLocation(program, 'uTex'), 0);
+  if (canvas) canvas.dataset.lod = lodEnabled ? '1' : '0';
 
   bindPointerEvents();
   new ResizeObserver(() => resize()).observe(canvas);
@@ -357,7 +412,7 @@ async function applyTexture(bmp: ImageBitmap, maxTex: number): Promise<boolean> 
   const pot = isPow2(upload.width) && isPow2(upload.height);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, pot ? gl.REPEAT : gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  if (pot) {
+  if (pot && lodEnabled) {
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
   } else {
@@ -376,6 +431,8 @@ async function applyTexture(bmp: ImageBitmap, maxTex: number): Promise<boolean> 
 
   if (texture) gl.deleteTexture(texture);
   texture = tex;
+  texWidth = upload.width;
+  texHeight = upload.height;
   if (canvas) {
     // Useful for diagnostics (and verifying progressive loading).
     canvas.dataset.texWidth = String(upload.width);
@@ -451,6 +508,8 @@ function draw(): void {
   gl.uniform1f(uPitch, pitch);
   gl.uniform1f(uFov, fov);
   gl.uniform1f(uAspect, canvas.width / Math.max(1, canvas.height));
+  gl.uniform2f(uRes, canvas.width, canvas.height);
+  gl.uniform2f(uTexRes, texWidth, texHeight);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 

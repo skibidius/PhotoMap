@@ -1,6 +1,6 @@
 [package]
 name = "photomap"
-version = "0.1.14"
+version = "0.1.15"
 description = "Lightweight desktop app to show geotagged photos on a map"
 authors = ["skibidius"]
 edition = "2021"
