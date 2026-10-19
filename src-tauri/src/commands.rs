@@ -209,16 +209,22 @@ pub async fn pano_preview(path: String, max_width: u32) -> Result<tauri::ipc::Re
 fn pano_preview_bytes(path: String, max_width: u32) -> Result<Vec<u8>, String> {
     let img = thumbs::open_image(std::path::Path::new(&path))
         .ok_or_else(|| "cannot decode panorama".to_string())?;
-    let max = max_width.clamp(512, 4096);
+    let max = max_width.clamp(512, 8192);
     let img = if img.width() > max {
-        img.thumbnail(max, u32::MAX)
+        if max <= 4096 {
+            // Fast temporary base layer while the high-res one loads.
+            img.thumbnail(max, u32::MAX)
+        } else {
+            // Maximum-quality downscale for the final texture.
+            img.resize(max, u32::MAX, image::imageops::FilterType::Lanczos3)
+        }
     } else {
         img
     };
-    let mut buf = std::io::Cursor::new(Vec::new());
-    img.write_to(&mut buf, image::ImageFormat::Jpeg)
-        .map_err(|e| e.to_string())?;
-    Ok(buf.into_inner())
+    let mut buf = Vec::new();
+    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, 88);
+    img.write_with_encoder(encoder).map_err(|e| e.to_string())?;
+    Ok(buf)
 }
 
 /// Fetch a remote tile through native HTTP, bypassing CORS restrictions that
@@ -321,5 +327,3 @@ pub fn open_url(url: String) -> Result<(), String> {
     }
     Ok(())
 }
-
-

@@ -371,13 +371,14 @@ function init(): void {
 
   // Panoramas are decoded and downscaled by the Rust backend: 14400x7200
   // originals are too big to hand to the webview as a WebGL texture.
-  setPanoLoader(async (path) => {
-    const cached = panoCache.get(path);
+  setPanoLoader(async (path, maxWidth) => {
+    const key = `${path}|${maxWidth}`;
+    const cached = panoCache.get(key);
     if (cached) return cached;
     try {
       const data = await invoke<ArrayBuffer | number[]>('pano_preview', {
         path,
-        maxWidth: 4096,
+        maxWidth,
       });
       const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : Uint8Array.from(data);
       const blob = new Blob([bytes], { type: 'image/jpeg' });
@@ -385,7 +386,7 @@ function init(): void {
         const oldest = panoCache.keys().next().value;
         if (oldest) panoCache.delete(oldest);
       }
-      panoCache.set(path, blob);
+      panoCache.set(key, blob);
       return blob;
     } catch {
       return null;
@@ -561,7 +562,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.13`;
+        aboutVersion.textContent = `${t('version')} 0.1.14`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));

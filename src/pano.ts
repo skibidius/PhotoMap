@@ -80,7 +80,7 @@ let autoRotate = true;
 
 /** Optional platform loader. The desktop app returns a downscaled JPEG from
  * Rust; the web build leaves it unset and fetches the object URL directly. */
-export type PanoLoader = (path: string) => Promise<Blob | null>;
+export type PanoLoader = (path: string, maxWidth: number) => Promise<Blob | null>;
 let loader: PanoLoader | null = null;
 
 export function setPanoLoader(fn: PanoLoader): void {
@@ -290,33 +290,35 @@ async function loadViaImage(url: string, targetW: number): Promise<ImageBitmap |
   }
 }
 
-async function loadTexture(path: string, myToken: number): Promise<boolean> {
-  if (!gl) return false;
-  const maxTex = (gl.getParameter(gl.MAX_TEXTURE_SIZE) as number) || 4096;
-  const targetW = Math.max(512, Math.min(4096, maxTex));
-
-  let bmp: ImageBitmap | null = null;
+async function bitmapFromBlob(blob: Blob, width: number): Promise<ImageBitmap | null> {
   try {
-    let blob: Blob | null = null;
-    if (loader) {
-      blob = await loader(path);
-    } else {
-      const res = await fetch(photoSrc(path), { mode: 'cors' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      blob = await res.blob();
-    }
-    if (!blob) throw new Error('no panorama data');
-    bmp = await createImageBitmap(blob, {
-      resizeWidth: targetW,
+    return await createImageBitmap(blob, {
+      resizeWidth: width,
       resizeQuality: 'high',
       imageOrientation: 'from-image',
     });
   } catch {
-    // Custom schemes on some webviews, or older browsers: decode through an
-    // <img> and downscale on a canvas instead.
-    bmp = await loadViaImage(photoSrc(path), targetW);
+    return null;
   }
-  if (!bmp) return false;
+}
+
+async function fetchBlob(url: string): Promise<Blob | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) return null;
+    return await res.blob();
+  } catch {
+    return null;
+  }
+}
+
+async function applyTexture(bmp: ImageBitmap, maxTex: number): Promise<boolean> {
+  if (!gl) {
+    bmp.close();
+    return false;
+  }
+
+  let upload = bmp;
   if (bmp.width > maxTex || bmp.height > maxTex) {
     // Some browsers ignore the one-sided resize option. Never upload a
     // 14400 px texture: downscale it on a canvas first.
@@ -333,34 +335,110 @@ async function loadTexture(path: string, myToken: number): Promise<boolean> {
     }
     ctx.drawImage(bmp, 0, 0, w, h);
     bmp.close();
-    bmp = await createImageBitmap(c);
-  }
-  if (myToken !== token || !active) {
-    bmp.close();
-    return false;
+    const smaller = await createImageBitmap(c);
+    if (!smaller) return false;
+    upload = smaller;
   }
 
   const tex = gl.createTexture();
   if (!tex) {
-    bmp.close();
+    upload.close();
     return false;
   }
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, upload);
 
-  // WebGL1 only allows REPEAT on power-of-two textures. Equirectangular
-  // panoramas normally give us 4096x2048; a cropped one falls back to CLAMP.
+  // WebGL1 only allows REPEAT and mipmaps on power-of-two textures. A normal
+  // equirectangular panorama gives us 8192x4096; a cropped one falls back to
+  // CLAMP + linear filtering. Mipmaps remove shimmer when zoomed out and
+  // anisotropic filtering keeps oblique views sharp.
   const isPow2 = (n: number): boolean => (n & (n - 1)) === 0;
-  const wrapS = isPow2(bmp.width) && isPow2(bmp.height) ? gl.REPEAT : gl.CLAMP_TO_EDGE;
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+  const pot = isPow2(upload.width) && isPow2(upload.height);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, pot ? gl.REPEAT : gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  if (pot) {
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  } else {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  bmp.close();
+
+  const aniso = gl.getExtension('EXT_texture_filter_anisotropic') as {
+    TEXTURE_MAX_ANISOTROPY_EXT: number;
+    MAX_TEXTURE_MAX_ANISOTROPY_EXT: number;
+  } | null;
+  if (aniso) {
+    const max = gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
+    gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, max));
+  }
 
   if (texture) gl.deleteTexture(texture);
   texture = tex;
+  if (canvas) {
+    // Useful for diagnostics (and verifying progressive loading).
+    canvas.dataset.texWidth = String(upload.width);
+    canvas.dataset.texHeight = String(upload.height);
+  }
+  upload.close();
+  return true;
+}
+
+async function loadPanorama(path: string, myToken: number): Promise<boolean> {
+  if (!gl) return false;
+  const maxTex = (gl.getParameter(gl.MAX_TEXTURE_SIZE) as number) || 4096;
+  const ua = navigator.userAgent;
+  const isMobile =
+    /Android|iPhone|iPad|iPod/i.test(ua) ||
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const highW = Math.min(isMobile ? 4096 : 8192, maxTex);
+  const baseW = Math.min(4096, highW);
+
+  // The web fetches the original once and decodes both sizes from it; the
+  // desktop loader asks Rust for a downscaled JPEG at each size.
+  const source = loader ? null : await fetchBlob(photoSrc(path));
+
+  const loadBitmap = async (width: number): Promise<ImageBitmap | null> => {
+    if (loader) {
+      const blob = await loader(path, width);
+      return blob ? bitmapFromBlob(blob, width) : null;
+    }
+    if (source) return bitmapFromBlob(source, width);
+    return null;
+  };
+
+  let base: ImageBitmap | null = null;
+  try {
+    base = await loadBitmap(baseW);
+  } catch {
+    base = null;
+  }
+  if (!base) base = await loadViaImage(photoSrc(path), baseW);
+  if (!base) return false;
+  if (myToken !== token || !active) {
+    base.close();
+    return false;
+  }
+  if (!(await applyTexture(base, maxTex))) return false;
+
+  // Upgrade to the high-resolution texture in the background; the base view
+  // is already interactive while this decodes and uploads.
+  if (highW > baseW) {
+    void (async () => {
+      try {
+        const high = await loadBitmap(highW);
+        if (!high) return;
+        if (myToken !== token || !active) {
+          high.close();
+          return;
+        }
+        await applyTexture(high, maxTex);
+      } catch {
+        /* keep the base texture */
+      }
+    })();
+  }
   return true;
 }
 
@@ -415,7 +493,7 @@ export async function openPanorama(path: string): Promise<boolean> {
   pointers.clear();
   host.classList.remove('active');
 
-  const ok = await loadTexture(path, my);
+  const ok = await loadPanorama(path, my);
   if (!ok || my !== token) return false;
   if (!active) return false;
 
