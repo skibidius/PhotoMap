@@ -31,6 +31,26 @@ export function initSidebar(el: HTMLElement, callbacks: SidebarCallbacks): void 
     },
     { root: el, rootMargin: '200px' },
   );
+
+  // One listener for the whole list instead of three per photo. With a few
+  // thousand items this keeps re-renders and scrolling noticeably cheaper.
+  el.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const reveal = target.closest<HTMLElement>('.pi-reveal');
+    if (reveal) {
+      cb.onReveal(reveal.dataset.id!);
+      return;
+    }
+    const item = target.closest<HTMLElement>('.photo-item');
+    if (item) cb.onSelect(item.dataset.id!);
+  });
+
+  el.addEventListener('dblclick', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.pi-reveal')) return;
+    const item = target.closest<HTMLElement>('.photo-item');
+    if (item) cb.onOpen(item.dataset.id!);
+  });
 }
 
 /** Filter and sort a photo list according to the current sidebar controls. */
@@ -80,22 +100,6 @@ export function render(list: Photo[], selectedId: string | null): void {
   }
 
   listEl.innerHTML = list.map(itemHtml).join('');
-
-  listEl.querySelectorAll<HTMLElement>('.photo-item').forEach((item) => {
-    item.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.pi-reveal')) return;
-      cb.onSelect(item.dataset.id!);
-    });
-    item.addEventListener('dblclick', () => cb.onOpen(item.dataset.id!));
-  });
-
-  listEl.querySelectorAll<HTMLElement>('.pi-reveal').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      cb.onReveal(btn.dataset.id!);
-    });
-  });
 
   listEl.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((img) => {
     observer?.observe(img);

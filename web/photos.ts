@@ -1,6 +1,12 @@
 // Browser-only photo import: read EXIF with exifr, keep the files in memory as
 // object URLs and return the same Photo shape the desktop backend produces.
 // Nothing is uploaded — parsing happens locally in the tab.
+//
+// Performance notes:
+// - EXIF parsing and thumbnail generation run in a small parallel pool.
+// - The sidebar gets a real downscaled thumbnail instead of the full JPEG, so
+//   scrolling a big album never decodes 12-megapixel images in 48px boxes.
+// - Files that are already in the list are skipped before any work is done.
 
 import exifr from 'exifr';
 import type { Photo } from '../src/types';
@@ -15,12 +21,21 @@ export interface ScanResult {
   scanned: number;
   withGps: number;
   errors: number;
+  skipped: number;
 }
 
 const IMAGE_RE = /\.(jpe?g|png|webp|heic|heif|tiff?|avif)$/i;
+const THUMB_MAX = 400;
+const THUMB_QUALITY = 0.8;
+const WORKERS = Math.min(4, Math.max(2, (navigator.hardwareConcurrency || 4) - 1));
 
 export function isImageFile(file: File): boolean {
   return file.type.startsWith('image/') || IMAGE_RE.test(file.name);
+}
+
+/** Stable id: re-importing the same file updates instead of duplicating it. */
+export function photoId(file: File): string {
+  return `${file.name}|${file.size}|${file.lastModified}`;
 }
 
 /** Turn a plain File list (from an <input>) into album-tagged items. */
@@ -159,6 +174,47 @@ function fovFromFocal(focal35: number | null, focal: number | null): number {
   return Math.min(120, Math.max(10, fov));
 }
 
+/**
+ * Downscale a file to a small JPEG for the sidebar and the map popup.
+ * Uses OffscreenCanvas where available; the <img> in the lightbox still gets
+ * the full-resolution object URL.
+ */
+async function makeThumbnail(file: File): Promise<Blob | null> {
+  let bmp: ImageBitmap;
+  try {
+    bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    return null;
+  }
+  try {
+    const scale = Math.min(1, THUMB_MAX / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(bmp, 0, 0, w, h);
+      return await canvas.convertToBlob({ type: 'image/jpeg', quality: THUMB_QUALITY });
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bmp, 0, 0, w, h);
+    return await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', THUMB_QUALITY),
+    );
+  } catch {
+    return null;
+  } finally {
+    bmp.close();
+  }
+}
+
 interface ExifLike {
   latitude?: unknown;
   longitude?: unknown;
@@ -174,64 +230,100 @@ interface ExifLike {
   altitude?: unknown;
 }
 
-/** Parse EXIF for every item, skipping images without GPS coordinates. */
+async function photoFromItem(item: ImportItem, id: string): Promise<Photo | null> {
+  const data = (await exifr.parse(item.file, {
+    gps: true,
+    tiff: true,
+    exif: true,
+  })) as ExifLike | undefined;
+  if (!data) return null;
+
+  const latitude = toNumber(data.latitude);
+  const longitude = toNumber(data.longitude);
+  if (latitude == null || longitude == null) return null;
+
+  const fullUrl = URL.createObjectURL(item.file);
+  const thumbBlob = await makeThumbnail(item.file);
+  const thumb = thumbBlob ? URL.createObjectURL(thumbBlob) : fullUrl;
+
+  const focal35 = toNumber(data.FocalLengthIn35mmFilm);
+  const focal = toNumber(data.FocalLength);
+  const direction = toNumber(data.GPSImgDirection);
+  const directionRef =
+    typeof data.GPSImgDirectionRef === 'string' ? data.GPSImgDirectionRef : null;
+
+  return {
+    id,
+    path: fullUrl,
+    album: item.album,
+    name: item.file.name,
+    latitude,
+    longitude,
+    azimuth: direction,
+    azimuth_ref: directionRef,
+    altitude: toNumber(data.GPSAltitude ?? data.altitude),
+    datetime: formatDate(data.DateTimeOriginal ?? data.CreateDate ?? data.ModifyDate),
+    orientation: orientationNumber(data.Orientation),
+    thumb,
+    focal_length: focal,
+    focal_length_35: focal35,
+    fov: fovFromFocal(focal35, focal),
+  };
+}
+
+/**
+ * Parse EXIF and build thumbnails for every item. `skipIds` lets a repeated
+ * import of the same folder finish instantly.
+ */
 export async function scanImportItems(
   items: ImportItem[],
+  skipIds?: Set<string>,
   onProgress?: (scanned: number, found: number, total: number) => void,
 ): Promise<ScanResult> {
-  const photos: Photo[] = [];
+  const results: Array<Photo | null> = new Array(items.length).fill(null);
+  const seen = new Set(skipIds ?? []);
   let scanned = 0;
-  let withGps = 0;
+  let found = 0;
   let errors = 0;
+  let skipped = 0;
+  let next = 0;
 
-  for (const item of items) {
-    scanned++;
-    try {
-      const data = (await exifr.parse(item.file, {
-        gps: true,
-        tiff: true,
-        exif: true,
-      })) as ExifLike | undefined;
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      const index = next++;
+      if (index >= items.length) return;
+      const item = items[index];
+      const id = photoId(item.file);
 
-      if (!data) {
-        errors++;
+      if (seen.has(id)) {
+        skipped++;
       } else {
-        const latitude = toNumber(data.latitude);
-        const longitude = toNumber(data.longitude);
-        if (latitude == null || longitude == null) {
-          // Not a geotagged photo — silently skip it.
-        } else {
-          withGps++;
-          const focal35 = toNumber(data.FocalLengthIn35mmFilm);
-          const focal = toNumber(data.FocalLength);
-          const direction = toNumber(data.GPSImgDirection);
-          const directionRef =
-            typeof data.GPSImgDirectionRef === 'string' ? data.GPSImgDirectionRef : null;
-          const url = URL.createObjectURL(item.file);
-          photos.push({
-            id: `${item.file.name}|${item.file.size}|${item.file.lastModified}`,
-            path: url,
-            album: item.album,
-            name: item.file.name,
-            latitude,
-            longitude,
-            azimuth: direction,
-            azimuth_ref: directionRef,
-            altitude: toNumber(data.GPSAltitude ?? data.altitude),
-            datetime: formatDate(data.DateTimeOriginal ?? data.CreateDate ?? data.ModifyDate),
-            orientation: orientationNumber(data.Orientation),
-            thumb: url,
-            focal_length: focal,
-            focal_length_35: focal35,
-            fov: fovFromFocal(focal35, focal),
-          });
+        seen.add(id);
+        try {
+          const photo = await photoFromItem(item, id);
+          if (photo) {
+            results[index] = photo;
+            found++;
+          }
+        } catch {
+          errors++;
         }
       }
-    } catch {
-      errors++;
-    }
-    onProgress?.(scanned, withGps, items.length);
-  }
 
-  return { photos, scanned, withGps, errors };
+      scanned++;
+      onProgress?.(scanned, found, items.length);
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(WORKERS, items.length) }, () => worker()),
+  );
+
+  return {
+    photos: results.filter((p): p is Photo => p !== null),
+    scanned,
+    withGps: found,
+    errors,
+    skipped,
+  };
 }

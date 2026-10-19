@@ -251,6 +251,9 @@ function rebuildMarkers(): void {
   markers.clear();
   cluster.clearLayers();
 
+  // Add in one batch: markercluster does a single bulk update instead of one
+  // per marker, which matters for albums with thousands of photos.
+  const layers: L.Marker[] = [];
   for (const p of lastPhotos) {
     photoById.set(p.id, p);
     const color = lastColors.get(p.album) ?? '#6750a4';
@@ -265,8 +268,9 @@ function rebuildMarkers(): void {
       marker.getElement()?.setAttribute('data-photo-id', p.id);
     });
     markers.set(p.id, marker);
-    cluster.addLayer(marker);
+    layers.push(marker);
   }
+  if (layers.length > 0) cluster.addLayers(layers);
 }
 
 export function setPhotos(photos: Photo[], colors: Map<string, string>): void {
@@ -363,9 +367,13 @@ export function selectPhoto(id: string | null, opts: { pan?: boolean } = {}): vo
 }
 
 export function fitToPhotos(): void {
-  if (cluster.getLayers().length === 0) return;
-  const b = cluster.getBounds();
-  if (b.isValid()) map.fitBounds(b, { padding: [48, 48], maxZoom: 16 });
+  if (lastPhotos.length === 0) return;
+  // Use the source list rather than cluster.getBounds(): it is available
+  // immediately, even before markercluster has finished adding layers.
+  const bounds = L.latLngBounds(
+    lastPhotos.map((p) => [p.latitude, p.longitude] as [number, number]),
+  );
+  if (bounds.isValid()) map.fitBounds(bounds, { padding: [48, 48], maxZoom: 16 });
 }
 
 export function setBasemap(key: string): void {

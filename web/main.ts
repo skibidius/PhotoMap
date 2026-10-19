@@ -25,8 +25,9 @@ import {
   itemsFromFiles,
   scanImportItems,
   type ImportItem,
+  type ScanResult,
 } from './photos';
-import type { Photo, ScanSummary } from '../src/types';
+import type { Photo } from '../src/types';
 import appIcon from '../src/assets/app-icon.png';
 
 // Import last so its rules win over Leaflet's defaults.
@@ -54,6 +55,7 @@ let album = 'all';
 let sortBy: 'date' | 'name' = 'date';
 let showLabels = localStorage.getItem('photomap.labels') === '1';
 let importing = false;
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 // DOM
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -191,7 +193,9 @@ async function copyTextToClipboard(text: string): Promise<void> {
 
 function clearAll(): void {
   for (const p of photos) {
-    if (p.path.startsWith('blob:')) URL.revokeObjectURL(p.path);
+    for (const u of new Set([p.path, p.thumb])) {
+      if (u && u.startsWith('blob:')) URL.revokeObjectURL(u);
+    }
   }
   photos = [];
   album = 'all';
@@ -226,20 +230,19 @@ async function importItems(items: ImportItem[]): Promise<void> {
 
   importing = true;
   scanOverlay.classList.remove('hidden');
-  scanText.textContent = t('scanning', { n: 0 });
+  scanText.textContent = t('scanningProgress', { done: 0, total: files.length });
 
   try {
-    // Let the overlay paint before the (synchronous-ish) EXIF pass starts.
+    // Let the overlay paint before the EXIF pass starts.
     await new Promise((resolve) => setTimeout(resolve, 30));
-    const result = await scanImportItems(files, (_scanned, found) => {
-      scanText.textContent = t('scanning', { n: found });
-    });
-    applySummary({
-      photos: result.photos,
-      scanned: result.scanned,
-      with_gps: result.withGps,
-      errors: result.errors,
-    });
+    const result = await scanImportItems(
+      files,
+      new Set(photos.map((p) => p.id)),
+      (done, _found, total) => {
+        scanText.textContent = t('scanningProgress', { done, total });
+      },
+    );
+    applySummary(result);
   } catch {
     toast(t('importError'));
   } finally {
@@ -248,18 +251,23 @@ async function importItems(items: ImportItem[]): Promise<void> {
   }
 }
 
-function applySummary(summary: ScanSummary): void {
+function applySummary(summary: ScanResult): void {
   const merged = new Map(photos.map((p) => [p.id, p]));
   for (const p of summary.photos) {
     const old = merged.get(p.id);
-    if (old && old.path !== p.path && old.path.startsWith('blob:')) {
-      URL.revokeObjectURL(old.path);
+    if (old) {
+      for (const u of new Set([old.path, old.thumb])) {
+        if (u && u.startsWith('blob:') && u !== p.path && u !== p.thumb) {
+          URL.revokeObjectURL(u);
+        }
+      }
     }
     merged.set(p.id, p);
   }
   setPhotoList([...merged.values()]);
-  if (summary.photos.length === 0) toast(t('scanEmpty'));
-  else toast(t('scanDone', { n: summary.photos.length }));
+  if (summary.photos.length > 0) toast(t('scanDone', { n: summary.photos.length }));
+  else if (summary.skipped > 0) toast(t('nothingNew'));
+  else toast(t('scanEmpty'));
 }
 
 function setPhotoList(list: Photo[]): void {
@@ -405,7 +413,8 @@ function init(): void {
 
   searchInput.addEventListener('input', () => {
     filter = searchInput.value;
-    refreshSidebar();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => refreshSidebar(), 140);
   });
   albumFilter.addEventListener('change', () => {
     album = albumFilter.value;

@@ -92,6 +92,7 @@ const scanText = $('scan-text');
 const toastEl = $('toast');
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 function toast(msg: string): void {
   toastEl.textContent = msg;
@@ -376,7 +377,8 @@ function init(): void {
 
   searchInput.addEventListener('input', () => {
     filter = searchInput.value;
-    refreshSidebar();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => refreshSidebar(), 140);
   });
   albumFilter.addEventListener('change', () => {
     album = albumFilter.value;
@@ -532,7 +534,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.11`;
+        aboutVersion.textContent = `${t('version')} 0.1.12`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));

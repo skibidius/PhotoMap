@@ -69,7 +69,18 @@ function show(): void {
   info().innerHTML = infoHtml(p);
   const image = img();
   image.alt = p.name;
+  image.decoding = 'async';
   image.classList.remove('failed');
   image.onerror = () => image.classList.add('failed');
   image.src = photoSrc(p.path);
+
+  // Warm the next photo so flipping through quickly doesn't wait on a decode.
+  if (photos.length > 1) {
+    const nextPhoto = photos[(index + 1) % photos.length];
+    if (nextPhoto) {
+      const preload = new Image();
+      preload.decoding = 'async';
+      preload.src = photoSrc(nextPhoto.path);
+    }
+  }
 }
