@@ -56,16 +56,16 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      # The Android project is generated below. Icons have to be generated
-      # first so `android init` can copy the launcher mipmaps into the project.
-      - name: Generate app icons
-        run: npx --no-install tauri icon src/assets/app-icon.png
-
       - name: Initialize Android project
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
         run: npx --no-install tauri android init --ci
+
+      # `android init` starts with Tauri's default icons. Running `tauri icon`
+      # after initialization writes the real launcher icons into gen/android.
+      - name: Apply Android launcher icons
+        run: npx --no-install tauri icon src/assets/app-icon.png
 
       - name: Prepare Android signing
         env:
