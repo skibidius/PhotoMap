@@ -39,15 +39,15 @@
 
 ## Android
 
-Android-версия упаковывает тот же браузерный интерфейс в Tauri WebView: фотографии по-прежнему читаются локально через `exifr` и никуда не загружаются. Workflow **Android APK** (`.github/workflows/android.yml`) собирает устанавливаемый APK при каждом пуше в `main`; к тегам релизов APK прикрепляется автоматически.
+Android-версия упаковывает тот же браузерный интерфейс в Tauri WebView: фотографии по-прежнему читаются локально через `exifr` и никуда не загружаются. Workflow **Android APK** (`.github/workflows/android.yml`) собирает подписанный release-APK при каждом пуше в `main`; к тегам релизов APK прикрепляется автоматически.
 
-Скачайте `PhotoMap_<version>_android-debug.apk` на странице [Releases](../../releases) или в последнем запуске Actions. APK подписан отладочным ключом Android — этого достаточно для тестирования и установки вручную. Для публикации в Play Store настройте release-keystore по [инструкции Tauri](https://v2.tauri.app/distribute/sign/android/).
+Скачайте `PhotoMap_<version>_android.apk` на странице [Releases](../../releases) или в последнем запуске Actions. CI подписывает его ключом проекта из секретов `ANDROID_KEY_BASE64`, `ANDROID_KEY_ALIAS` и `ANDROID_KEY_PASSWORD`, поэтому новые версии ставятся поверх старых. Сохраните резервную копию этого keystore, если хотите и дальше обновлять Android-приложение или публиковать его в Google Play.
 
 Для локальной сборки нужны Android Studio с SDK и NDK, Java 17 и Rust-таргеты для Android:
 
 ```bash
-npm run tauri android init --ci
-npm run tauri android build --debug --apk
+npm run tauri -- android init --ci
+npm run tauri -- android build --debug --apk
 ```
 
 В приложении выбирайте **«Импорт» → «Файлы»**, чтобы взять фото из галереи; выбор папки доступен только на десктопе.

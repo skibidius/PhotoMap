@@ -39,15 +39,15 @@ Build it locally with `npm run dev:web` (dev server on port 5174) or `npm run bu
 
 ## Android
 
-The Android app wraps the same browser frontend in a Tauri WebView, so photos are still parsed locally with `exifr` and never uploaded. The **Android APK** workflow (`.github/workflows/android.yml`) builds an installable APK on every push to `main`; tagged releases also get the APK attached.
+The Android app wraps the same browser frontend in a Tauri WebView, so photos are still parsed locally with `exifr` and never uploaded. The **Android APK** workflow (`.github/workflows/android.yml`) builds a signed release APK on every push to `main`; tagged releases also get the APK attached.
 
-Download `PhotoMap_<version>_android-debug.apk` from the [Releases](../../releases) page or from the latest Actions run. It is signed with the Android debug key, which is fine for testing and sideloading. For Play Store distribution, set up a release keystore as described in the [Tauri Android signing guide](https://v2.tauri.app/distribute/sign/android/).
+Download `PhotoMap_<version>_android.apk` from the [Releases](../../releases) page or from the latest Actions run. CI signs it with a project keystore stored in the `ANDROID_KEY_BASE64`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` Actions secrets, so newer APKs can be installed over older ones. Keep a backup of that keystore if you want to keep updating the Android app or publish it to Google Play.
 
 To build locally you need Android Studio with the SDK and NDK, Java 17, and the Rust Android targets:
 
 ```bash
-npm run tauri android init --ci
-npm run tauri android build --debug --apk
+npm run tauri -- android init --ci
+npm run tauri -- android build --debug --apk
 ```
 
 Use **Import → Files** to pick photos from the device; the folder picker is desktop-only.

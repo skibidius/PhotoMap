@@ -56,31 +56,57 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      # The Android project is generated below. Icons have to be generated
+      # first so `android init` can copy the launcher mipmaps into the project.
+      - name: Generate app icons
+        run: npx --no-install tauri icon src/assets/app-icon.png
+
       - name: Initialize Android project
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
-        run: npm run tauri android init --ci
+        run: npx --no-install tauri android init --ci
 
-      - name: Build debug APK
+      - name: Prepare Android signing
+        env:
+          ANDROID_KEY_BASE64: ${{ secrets.ANDROID_KEY_BASE64 }}
+        run: |
+          printf '%s' "$ANDROID_KEY_BASE64" | base64 -d > "$RUNNER_TEMP/photomap.p12"
+          test -s "$RUNNER_TEMP/photomap.p12"
+
+      - name: Configure release signing
+        run: python3 scripts/patch_android_signing.py
+
+      - name: Build signed release APK
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
-        run: npm run tauri android build --debug --apk --ci
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/photomap.p12
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: npx --no-install tauri android build --apk --ci
 
-      - name: Collect APK
+      - name: Collect and verify APK
         run: |
           VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
           mkdir -p android-out
-          APK=$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | head -n 1)
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk -path '*/release/*.apk' -name '*.apk' ! -name '*unsigned*' | head -n 1)
           test -n "$APK"
-          cp "$APK" "android-out/PhotoMap_${VERSION}_android-debug.apk"
+          cp "$APK" "android-out/PhotoMap_${VERSION}_android.apk"
+
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose "android-out/PhotoMap_${VERSION}_android.apk"
+
+          AAPT2=$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort -V | tail -n 1)
+          "$AAPT2" dump badging "android-out/PhotoMap_${VERSION}_android.apk" | grep -E 'package:|application-icon' | head -n 5
+          "$AAPT2" dump badging "android-out/PhotoMap_${VERSION}_android.apk" | grep -q 'application-icon'
           ls -lh android-out
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PhotoMap-android-debug
+          name: PhotoMap-android
           path: android-out/*.apk
           if-no-files-found: error
 
