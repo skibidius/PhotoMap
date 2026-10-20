@@ -4,6 +4,8 @@ node_modules/
 # Frontend build output
 dist/
 dist-web/
+dist-android/
+android-out/
 
 # Rust / Tauri build output
 src-tauri/target/

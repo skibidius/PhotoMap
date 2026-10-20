@@ -27,6 +27,8 @@ Built with [Tauri 2](https://v2.tauri.app/).
 | --- | --- |
 | ![Photos on the map](docs/screenshots/map.png) | ![Settings](docs/screenshots/settings.png) |
 
+> Demo photos in the screenshots and on the site: [Grand Kremlin Palace in summer sunset light](https://commons.wikimedia.org/wiki/File:Grand_Kremlin_Palace_in_summer_sunset_light_2025-8.jpg) by Юрий Д.К. ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), [Brateyevo Cascade Park](https://commons.wikimedia.org/wiki/File:Moscow,_Brateyevo_Cascade_Park,_Russia.jpg) by Vyacheslav Argenberg ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), and [Moscow City 2019](https://commons.wikimedia.org/wiki/File:Moscow_City_2019.jpg) by CommunistSquared ([CC0](https://creativecommons.org/publicdomain/zero/1.0/)), via Wikimedia Commons. Resized and cropped for the demo; these are not the author's photos and are not covered by the MIT license.
+
 ## Web version
 
 There's also a browser build that runs entirely on your device: **[skibidius.github.io/PhotoMap](https://skibidius.github.io/PhotoMap/)**.
@@ -35,9 +37,24 @@ It uses the same interface and parses EXIF locally with [exifr](https://github.c
 
 Build it locally with `npm run dev:web` (dev server on port 5174) or `npm run build:web` (output in `dist-web/`). Every push to `main` deploys it to GitHub Pages via `.github/workflows/pages.yml`.
 
+## Android
+
+The Android app wraps the same browser frontend in a Tauri WebView, so photos are still parsed locally with `exifr` and never uploaded. The **Android APK** workflow (`.github/workflows/android.yml`) builds an installable APK on every push to `main`; tagged releases also get the APK attached.
+
+Download `PhotoMap_<version>_android-debug.apk` from the [Releases](../../releases) page or from the latest Actions run. It is signed with the Android debug key, which is fine for testing and sideloading. For Play Store distribution, set up a release keystore as described in the [Tauri Android signing guide](https://v2.tauri.app/distribute/sign/android/).
+
+To build locally you need Android Studio with the SDK and NDK, Java 17, and the Rust Android targets:
+
+```bash
+npm run tauri android init --ci
+npm run tauri android build --debug --apk
+```
+
+Use **Import → Files** to pick photos from the device; the folder picker is desktop-only.
+
 ## Download
 
-Grab an installer from the [Releases](../../releases) page. Windows gets an `.msi` / `.exe`, macOS a `.dmg` (Intel and Apple Silicon), Linux a `.deb` and an AppImage.
+Grab an installer from the [Releases](../../releases) page. Windows gets an `.msi` / `.exe`, macOS a `.dmg` (Intel and Apple Silicon), Linux a `.deb` and an AppImage, and Android an APK.
 
 > macOS: the app isn't notarized, so Gatekeeper may complain. If you see a
 > "damaged app" message, clear the quarantine flag:
@@ -102,7 +119,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The workflow builds installers for Windows, macOS (Intel + Apple Silicon) and Linux and publishes them to the Releases page automatically.
+The workflow builds installers for Windows, macOS (Intel + Apple Silicon) and Linux, the Android workflow builds the APK, and both publish to the Releases page automatically.
 
 ## Notes
 

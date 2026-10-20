@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Sitemap: https://skibidius.github.io/PhotoMap/sitemap.xml
+
+User-agent: Yandex
+Allow: /
+Clean-param: demo&lang /PhotoMap/
+Sitemap: https://skibidius.github.io/PhotoMap/sitemap.xml

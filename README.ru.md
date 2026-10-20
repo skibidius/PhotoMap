@@ -27,6 +27,8 @@
 | --- | --- |
 | ![Фото на карте](docs/screenshots/map.png) | ![Настройки](docs/screenshots/settings.png) |
 
+> Демо-фотографии на скриншотах и на сайте: [Большой Кремлёвский дворец](https://commons.wikimedia.org/wiki/File:Grand_Kremlin_Palace_in_summer_sunset_light_2025-8.jpg) — Юрий Д.К. ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), [каскадный парк в Братееве](https://commons.wikimedia.org/wiki/File:Moscow,_Brateyevo_Cascade_Park,_Russia.jpg) — Vyacheslav Argenberg ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), [Москва-Сити, 2019](https://commons.wikimedia.org/wiki/File:Moscow_City_2019.jpg) — CommunistSquared ([CC0](https://creativecommons.org/publicdomain/zero/1.0/)), через Wikimedia Commons. Фото уменьшены и обрезаны для демо; это не фотографии автора и они не покрываются лицензией MIT.
+
 ## Веб-версия
 
 Есть и браузерная версия, которая работает целиком на вашем устройстве: **[skibidius.github.io/PhotoMap](https://skibidius.github.io/PhotoMap/)**.
@@ -35,9 +37,24 @@
 
 Локально: `npm run dev:web` (сервер на порту 5174) или `npm run build:web` (сборка в `dist-web/`). Каждый пуш в `main` публикует её на GitHub Pages через `.github/workflows/pages.yml`.
 
+## Android
+
+Android-версия упаковывает тот же браузерный интерфейс в Tauri WebView: фотографии по-прежнему читаются локально через `exifr` и никуда не загружаются. Workflow **Android APK** (`.github/workflows/android.yml`) собирает устанавливаемый APK при каждом пуше в `main`; к тегам релизов APK прикрепляется автоматически.
+
+Скачайте `PhotoMap_<version>_android-debug.apk` на странице [Releases](../../releases) или в последнем запуске Actions. APK подписан отладочным ключом Android — этого достаточно для тестирования и установки вручную. Для публикации в Play Store настройте release-keystore по [инструкции Tauri](https://v2.tauri.app/distribute/sign/android/).
+
+Для локальной сборки нужны Android Studio с SDK и NDK, Java 17 и Rust-таргеты для Android:
+
+```bash
+npm run tauri android init --ci
+npm run tauri android build --debug --apk
+```
+
+В приложении выбирайте **«Импорт» → «Файлы»**, чтобы взять фото из галереи; выбор папки доступен только на десктопе.
+
 ## Скачать
 
-Готовые сборки — на странице [Releases](../../releases). Для Windows — `.msi` / `.exe`, для macOS — `.dmg` (Intel и Apple Silicon), для Linux — `.deb` и AppImage.
+Готовые сборки — на странице [Releases](../../releases). Для Windows — `.msi` / `.exe`, для macOS — `.dmg` (Intel и Apple Silicon), для Linux — `.deb` и AppImage, для Android — APK.
 
 > macOS: приложение не подписано (no notarization), поэтому Gatekeeper может
 > ругаться. Если видите «приложение повреждено» — снимите карантинный флаг:
@@ -102,7 +119,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Workflow соберёт инсталляторы для Windows, macOS (Intel + Apple Silicon) и Linux и автоматически выложит их в Releases.
+Workflow соберёт инсталляторы для Windows, macOS (Intel + Apple Silicon) и Linux, Android-workflow соберёт APK, и всё автоматически появится в Releases.
 
 ## Примечания
 

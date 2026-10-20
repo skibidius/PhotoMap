@@ -26,11 +26,18 @@ fn photo_mime(path: &str) -> &'static str {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init());
+
+    // Updating is only meaningful on desktop; the Android build uses the
+    // browser frontend and is updated by installing a new APK.
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_process::init());
+
+    builder
         // Serve photo files straight to the webview via a custom protocol.
         // This avoids shipping multi-megabyte originals over IPC and lets the
         // platform decoder handle JPEG/PNG/WebP/HEIC natively.

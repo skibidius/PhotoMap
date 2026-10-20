@@ -1,6 +1,6 @@
 [package]
 name = "photomap"
-version = "0.1.16"
+version = "0.1.17"
 description = "Lightweight desktop app to show geotagged photos on a map"
 authors = ["skibidius"]
 edition = "2021"
@@ -16,8 +16,6 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-dialog = "2"
-tauri-plugin-updater = "2"
-tauri-plugin-process = "2"
 tauri-plugin-clipboard-manager = "2"
 percent-encoding = "2"
 serde = { version = "1", features = ["derive"] }
@@ -27,6 +25,11 @@ image = "0.25"
 ureq = "2"
 walkdir = "2"
 base64 = "0.22"
+
+# The updater and process plugins are desktop-only.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 [profile.release]
 opt-level = "s"

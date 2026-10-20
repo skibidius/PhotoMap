@@ -1,0 +1,7 @@
+{
+  "identifier": "android",
+  "description": "Android web frontend",
+  "windows": ["main"],
+  "platforms": ["android"],
+  "permissions": ["core:default"]
+}

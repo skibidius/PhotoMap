@@ -22,6 +22,13 @@ const ru: Dict = {
   noResults: 'Ничего не найдено',
   emptyTitle: 'Добавьте фотографии',
   emptyText: 'Перетащите сюда папку с фото или нажмите «Импорт». Координаты и направление съёмки читаются из EXIF.',
+  landingIntro: 'PhotoMap — бесплатный лёгкий просмотрщик геотегированных фотографий. Читает GPS-координаты, направление съёмки и фокусное расстояние из EXIF и расставляет снимки по интерактивной карте. Всё работает локально в браузере — фотографии никуда не загружаются.',
+  landingAbout: 'Возможности и приложения',
+  landingFeature1: 'Подложки OpenStreetMap, Яндекс и Google',
+  landingFeature2: 'Просмотр панорам 360° с перетаскиванием, зумом и авто-вращением',
+  landingFeature3: 'Экспорт KML, GeoJSON и PNG, а также приложения для Windows, macOS, Linux и Android',
+  landingGithub: 'Исходный код и установщики на GitHub',
+  landingMore: 'Подробнее о PhotoMap',
   dropHint: 'Отпустите, чтобы импортировать',
   themeSystem: 'Системная',
   themeLight: 'Светлая',
@@ -86,6 +93,7 @@ const ru: Dict = {
   legend: 'Легенда',
   north: 'С',
   photos: 'фото',
+  photoList: 'Список фото',
   album: 'Альбом',
   sortBy: 'Сортировка',
   unsupported: 'Формат не поддерживается для предпросмотра',
@@ -111,6 +119,13 @@ const en: Dict = {
   noResults: 'Nothing found',
   emptyTitle: 'Add your photos',
   emptyText: 'Drop a folder here or press Import. Coordinates and shooting direction are read from EXIF.',
+  landingIntro: 'PhotoMap is a free, lightweight viewer for geotagged photos. It reads GPS coordinates, shooting direction and focal length from EXIF and places every photo on an interactive map. Everything runs locally in your browser — nothing is uploaded.',
+  landingAbout: 'Features and desktop apps',
+  landingFeature1: 'OpenStreetMap, Yandex and Google basemaps',
+  landingFeature2: '360° panorama viewer with drag, zoom and auto-rotation',
+  landingFeature3: 'KML, GeoJSON and PNG export, plus apps for Windows, macOS, Linux and Android',
+  landingGithub: 'Source code and desktop downloads on GitHub',
+  landingMore: 'More about PhotoMap',
   dropHint: 'Drop to import',
   themeSystem: 'System',
   themeLight: 'Light',
@@ -175,6 +190,7 @@ const en: Dict = {
   legend: 'Legend',
   north: 'N',
   photos: 'photos',
+  photoList: 'Photo list',
   album: 'Album',
   sortBy: 'Sort',
   unsupported: 'Preview not supported for this format',
@@ -189,12 +205,27 @@ let current: Lang = loadLang();
 
 function loadLang(): Lang {
   try {
+    const param = new URLSearchParams(location.search).get('lang');
+    if (param === 'ru' || param === 'en') {
+      try {
+        localStorage.setItem('photomap.lang', param);
+      } catch {
+        /* ignore */
+      }
+      return param;
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
     const saved = localStorage.getItem('photomap.lang');
     if (saved === 'ru' || saved === 'en') return saved;
   } catch {
     /* ignore */
   }
-  return navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  // Russian is the primary audience: new users start in Russian. The toolbar
+  // switch persists an explicit English choice, and ?lang=en forces it.
+  return 'ru';
 }
 
 export function lang(): Lang {

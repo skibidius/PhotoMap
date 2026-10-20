@@ -129,7 +129,7 @@ textarea {
   font-weight: 500;
   font-size: 20px;
   letter-spacing: -0.2px;
-  margin-right: 4px;
+  margin: 0 4px 0 0;
   white-space: nowrap;
 }
 
@@ -760,11 +760,12 @@ textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   gap: 8px;
   text-align: center;
   padding: 24px;
   background: var(--md-background);
+  overflow-y: auto;
   z-index: 300;
 }
 
@@ -1377,4 +1378,173 @@ html.web #lightbox-reveal {
   color: var(--md-on-surface-variant);
   font-size: 13px;
   line-height: 1.45;
+}
+
+/* ---------- Landing / SEO copy in the empty state ---------- */
+.empty-state .landing-intro {
+  max-width: 470px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--md-on-surface-variant);
+}
+
+.landing-about {
+  max-width: 470px;
+  margin-top: 4px;
+  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  text-align: left;
+}
+
+.landing-about summary {
+  cursor: pointer;
+  color: var(--md-primary);
+  font-weight: 500;
+  text-align: center;
+  list-style: none;
+}
+
+.landing-about summary::-webkit-details-marker {
+  display: none;
+}
+
+.landing-about[open] summary {
+  margin-bottom: 6px;
+}
+
+.landing-features {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+}
+
+.landing-features li {
+  margin: 2px 0;
+  line-height: 1.45;
+}
+
+.empty-state .landing-links {
+  margin: 0;
+  max-width: none;
+}
+
+.empty-state .landing-lang {
+  margin: 2px 0 0;
+  max-width: none;
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+}
+
+.landing-links a,
+.landing-lang a {
+  color: var(--md-primary);
+  text-decoration: none;
+}
+
+.landing-links a:hover,
+.landing-lang a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Narrow screens: safe margins + sidebar drawer ---------- */
+.menu-btn {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+
+  .topbar-left {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .topbar-left #fit-btn,
+  .topbar-right #theme-btn,
+  .topbar-right #lang-btn {
+    display: none;
+  }
+
+  .menu-btn {
+    display: inline-flex;
+  }
+
+  .topbar-search {
+    display: block;
+    order: 10;
+    flex: 1 0 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  .topbar-search input {
+    height: 38px;
+  }
+
+  .topbar-right {
+    gap: 4px;
+  }
+
+  .topbar-right .btn-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .app-logo {
+    font-size: 26px;
+  }
+
+  .import-arrow {
+    display: none;
+  }
+
+  #import-btn {
+    padding: 0 12px;
+  }
+
+  #main {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(86vw, 360px);
+    z-index: 600;
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.25);
+  }
+
+  .sidebar-open .sidebar {
+    transform: none;
+  }
+
+  #main.sidebar-open::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 550;
+    background: rgba(0, 0, 0, 0.32);
+    pointer-events: none;
+  }
+
+  .empty-state {
+    left: 0;
+    padding: 20px 18px;
+  }
+
+  .settings-card {
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
 }

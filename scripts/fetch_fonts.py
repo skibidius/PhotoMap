@@ -40,6 +40,7 @@ ICONS = ",".join(
         "layers",
         "light_mode",
         "map",
+        "menu",
         "my_location",
         "north",
         "photo_camera",

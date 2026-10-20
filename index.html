@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,22 +10,25 @@
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-left">
+          <button id="menu-btn" class="btn btn-icon menu-btn" data-i18n-title="photoList">
+            <span class="material-symbols-rounded">menu</span>
+          </button>
           <span class="app-logo material-symbols-rounded">photo_camera</span>
           <span class="app-title">PhotoMap</span>
           <div class="menu-anchor">
             <button id="import-btn" class="btn btn-filled" aria-haspopup="menu">
               <span class="material-symbols-rounded">add_photo_alternate</span>
-              <span data-i18n="import">Import</span>
+              <span data-i18n="import">Импорт</span>
               <span class="material-symbols-rounded import-arrow">arrow_drop_down</span>
             </button>
             <div id="import-menu" class="menu hidden" role="menu">
               <button id="import-folder" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">folder_open</span>
-                <span data-i18n="importFolder">Import folder</span>
+                <span data-i18n="importFolder">Импортировать папку</span>
               </button>
               <button id="import-files" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">image</span>
-                <span data-i18n="importFiles">Import photos</span>
+                <span data-i18n="importFiles">Импортировать фото</span>
               </button>
             </div>
           </div>
@@ -36,7 +39,7 @@
 
         <div class="topbar-search">
           <span class="material-symbols-rounded search-icon">search</span>
-          <input id="search-input" type="text" data-i18n-placeholder="search" placeholder="Search" />
+          <input id="search-input" type="text" data-i18n-placeholder="search" placeholder="Поиск по названию…" />
         </div>
 
         <div class="topbar-right">
@@ -54,19 +57,19 @@
             <div id="export-menu" class="menu hidden" role="menu">
               <button id="export-kml" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">map</span>
-                <span data-i18n="exportKml">KML</span>
+                <span data-i18n="exportKml">Экспорт KML</span>
               </button>
               <button id="export-geojson" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">data_object</span>
-                <span data-i18n="exportGeoJson">GeoJSON</span>
+                <span data-i18n="exportGeoJson">Экспорт GeoJSON</span>
               </button>
               <button id="export-png" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">image</span>
-                <span data-i18n="exportPng">PNG</span>
+                <span data-i18n="exportPng">Снимок карты (PNG)</span>
               </button>
               <button id="export-copy" class="menu-item" role="menuitem">
                 <span class="material-symbols-rounded">content_copy</span>
-                <span data-i18n="copyImage">Copy image</span>
+                <span data-i18n="copyImage">Копировать снимок карты</span>
               </button>
             </div>
           </div>
@@ -74,7 +77,7 @@
           <button id="theme-btn" class="btn btn-icon" data-i18n-title="theme" title="Theme">
             <span id="theme-icon" class="material-symbols-rounded">dark_mode</span>
           </button>
-          <button id="lang-btn" class="btn btn-lang" data-i18n-title="language">EN</button>
+          <button id="lang-btn" class="btn btn-lang" data-i18n-title="language">RU</button>
           <button id="settings-btn" class="btn btn-icon" data-i18n-title="settings" title="Settings">
             <span class="material-symbols-rounded">settings</span>
           </button>
@@ -82,16 +85,16 @@
       </header>
 
       <!-- Main area -->
-      <div id="main">
+      <main id="main">
         <aside id="sidebar" class="sidebar">
           <div class="sidebar-header">
             <div class="sidebar-filters">
               <select id="album-filter" class="select select-grow" data-i18n-title="album">
-                <option value="all" data-i18n="allAlbums">All albums</option>
+                <option value="all" data-i18n="allAlbums">Все альбомы</option>
               </select>
               <select id="sort-select" class="select" data-i18n-title="sortBy">
-                <option value="date" data-i18n="sortDate">By date</option>
-                <option value="name" data-i18n="sortName">By name</option>
+                <option value="date" data-i18n="sortDate">По дате</option>
+                <option value="name" data-i18n="sortName">По имени</option>
               </select>
             </div>
             <div class="sidebar-meta">
@@ -102,7 +105,7 @@
             </div>
           </div>
           <div id="photo-list" class="photo-list"></div>
-          <div id="no-results" class="no-results hidden" data-i18n="noResults">Nothing found</div>
+          <div id="no-results" class="no-results hidden" data-i18n="noResults">Ничего не найдено</div>
         </aside>
 
         <div id="map"></div>
@@ -110,19 +113,19 @@
         <!-- Empty state (over the map only) -->
         <div id="empty-state" class="empty-state">
           <span class="empty-icon material-symbols-rounded">explore</span>
-          <h2 data-i18n="emptyTitle">Add your photos</h2>
-          <p data-i18n="emptyText">Drop a folder here or press Import. Coordinates and direction are read from EXIF.</p>
+          <h2 data-i18n="emptyTitle">Добавьте фотографии</h2>
+          <p data-i18n="emptyText">Перетащите сюда папку с фото или нажмите «Импорт». Координаты и направление съёмки читаются из EXIF.</p>
           <button id="empty-import-btn" class="btn btn-filled btn-large">
             <span class="material-symbols-rounded">add_photo_alternate</span>
-            <span data-i18n="import">Import</span>
+            <span data-i18n="import">Импорт</span>
           </button>
         </div>
-      </div>
+      </main>
 
       <!-- Drag & drop overlay -->
       <div id="drop-overlay" class="drop-overlay hidden">
         <span class="material-symbols-rounded">cloud_upload</span>
-        <p data-i18n="dropHint">Drop to import</p>
+        <p data-i18n="dropHint">Отпустите, чтобы импортировать</p>
       </div>
 
       <!-- Scan progress overlay -->
@@ -137,40 +140,40 @@
       <div id="settings-panel" class="settings hidden">
         <div class="settings-card">
           <div class="settings-head">
-            <h3 data-i18n="settings">Settings</h3>
+            <h3 data-i18n="settings">Настройки</h3>
             <button id="settings-close" class="btn btn-icon" data-i18n-title="close">
               <span class="material-symbols-rounded">close</span>
             </button>
           </div>
 
           <div class="settings-section">
-            <div class="settings-label" data-i18n="theme">Theme</div>
+            <div class="settings-label" data-i18n="theme">Тема</div>
             <div class="segmented">
-              <button class="seg" data-scheme="system" data-i18n="themeSystem">System</button>
-              <button class="seg" data-scheme="light" data-i18n="themeLight">Light</button>
-              <button class="seg" data-scheme="dark" data-i18n="themeDark">Dark</button>
+              <button class="seg" data-scheme="system" data-i18n="themeSystem">Системная</button>
+              <button class="seg" data-scheme="light" data-i18n="themeLight">Светлая</button>
+              <button class="seg" data-scheme="dark" data-i18n="themeDark">Тёмная</button>
             </div>
           </div>
 
           <div class="settings-section">
-            <div class="settings-label" data-i18n="accentColor">Accent color</div>
+            <div class="settings-label" data-i18n="accentColor">Акцентный цвет</div>
             <div id="accent-presets" class="accent-presets"></div>
             <label class="accent-custom">
-              <span data-i18n="custom">Custom</span>
+              <span data-i18n="custom">Свой</span>
               <span class="color-chip"><input id="accent-custom" type="color" value="#1a73e8" /></span>
             </label>
           </div>
 
           <div class="settings-section">
-            <div class="settings-label" data-i18n="display">Display</div>
+            <div class="settings-label" data-i18n="display">Отображение</div>
             <label class="switch-row">
-              <span data-i18n="showLabels">Show photo names</span>
+              <span data-i18n="showLabels">Показывать названия фото</span>
               <input id="labels-toggle" type="checkbox" class="switch" />
             </label>
           </div>
 
           <div class="settings-section">
-            <div class="settings-label" data-i18n="language">Language</div>
+            <div class="settings-label" data-i18n="language">Язык</div>
             <div class="segmented">
               <button class="seg" data-lang="ru">Русский</button>
               <button class="seg" data-lang="en">English</button>
@@ -178,28 +181,26 @@
           </div>
 
           <div class="settings-section">
-            <div class="settings-label" data-i18n="updates">Updates</div>
+            <div class="settings-label" data-i18n="updates">Обновления</div>
             <button id="check-updates-btn" class="btn btn-tonal">
               <span class="material-symbols-rounded">system_update_alt</span>
-              <span data-i18n="checkUpdates">Check for updates</span>
+              <span data-i18n="checkUpdates">Проверить обновления</span>
             </button>
           </div>
 
           <div class="settings-section">
-            <div class="settings-label" data-i18n="support">Support</div>
+            <div class="settings-label" data-i18n="support">Поддержка</div>
             <button id="support-btn" class="btn btn-tonal">
               <span class="material-symbols-rounded">volunteer_activism</span>
-              <span data-i18n="supportButton">Support development</span>
+              <span data-i18n="supportButton">Поддержать разработку</span>
             </button>
-            <p class="settings-note" data-i18n="supportNote">
-              In the donation comment you can tell us which features you want to see in the app.
-            </p>
+            <p class="settings-note" data-i18n="supportNote">В комментарии к донату можно указать, какие функции вы хотели бы видеть в приложении.</p>
           </div>
 
           <div class="settings-section">
             <button id="about-btn" class="btn btn-tonal">
               <span class="material-symbols-rounded">info</span>
-              <span data-i18n="about">About</span>
+              <span data-i18n="about">О программе</span>
             </button>
           </div>
         </div>
@@ -211,13 +212,13 @@
           <img id="about-logo" class="about-logo" alt="PhotoMap" />
           <h2>PhotoMap</h2>
           <div id="about-version" class="about-version"></div>
-          <p class="about-desc" data-i18n="aboutDesc"></p>
+          <p class="about-desc" data-i18n="aboutDesc">Лёгкий просмотрщик фотографий на карте. Расставляет снимки по GPS-координатам и направлению съёмки из EXIF.</p>
           <div class="about-actions">
             <button id="about-github" class="btn btn-tonal">
               <span class="material-symbols-rounded">code</span>
               <span data-i18n="github">GitHub</span>
             </button>
-            <button id="about-close" class="btn btn-filled" data-i18n="close">Close</button>
+            <button id="about-close" class="btn btn-filled" data-i18n="close">Закрыть</button>
           </div>
         </div>
       </div>

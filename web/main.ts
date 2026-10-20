@@ -37,6 +37,11 @@ declare const __APP_VERSION__: string;
 
 const SUPPORT_URL = 'https://pay.cloudtips.ru/p/6b424301';
 
+const PAGE_TITLE: Record<'ru' | 'en', string> = {
+  ru: 'PhotoMap — фотографии на карте по GPS и EXIF',
+  en: 'PhotoMap — geotagged photos on a map',
+};
+
 const ALBUM_PALETTE = [
   '#1a73e8',
   '#188038',
@@ -63,6 +68,8 @@ let searchTimer: ReturnType<typeof setTimeout> | undefined;
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
 const importBtn = $('import-btn');
+const menuBtn = $('menu-btn');
+const mainEl = $('main');
 const importMenu = $('import-menu');
 const importFolderBtn = $('import-folder');
 const importFilesBtn = $('import-files');
@@ -125,7 +132,7 @@ function refreshSidebar(): void {
   render(currentList, selectedId);
   const n = currentList.length;
   photoCount.textContent = t(n === 1 ? 'photosCountOne' : 'photosCount', { n });
-  noResults.classList.toggle('hidden', currentList.length > 0);
+  noResults.classList.toggle('hidden', currentList.length > 0 || photos.length === 0);
 }
 
 function rebuildAlbumFilter(): void {
@@ -143,6 +150,7 @@ function rebuildAlbumFilter(): void {
 
 function select(id: string, fromMap: boolean): void {
   selectedId = id;
+  mainEl.classList.remove('sidebar-open');
   selectPhoto(id, { pan: !fromMap });
   highlight(id, true);
 }
@@ -150,6 +158,7 @@ function select(id: string, fromMap: boolean): void {
 function deselect(): void {
   selectedId = null;
   clearHighlight();
+  mainEl.classList.remove('sidebar-open');
 }
 
 function openViewer(id: string): void {
@@ -303,6 +312,7 @@ function syncControls(): void {
   const scheme = document.documentElement.dataset.scheme;
   themeIcon.textContent = scheme === 'dark' ? 'dark_mode' : 'light_mode';
   langBtn.textContent = lang().toUpperCase();
+  langBtn.setAttribute('aria-label', `${t('language')}: ${lang().toUpperCase()}`);
 
   document.querySelectorAll<HTMLElement>('.seg[data-scheme]').forEach((b) => {
     b.classList.toggle('active', b.dataset.scheme === getPrefs().scheme);
@@ -371,6 +381,7 @@ function renderAccentPresets(): void {
 
 function applyLanguage(): void {
   applyStaticLabels();
+  document.title = PAGE_TITLE[lang()];
   populateBasemaps();
   rebuildAlbumFilter();
   refreshSidebar();
@@ -381,11 +392,6 @@ function applyLanguage(): void {
 
 function init(): void {
   document.documentElement.classList.add('web');
-
-  const favicon = document.createElement('link');
-  favicon.rel = 'icon';
-  favicon.href = appIcon;
-  document.head.appendChild(favicon);
 
   initTheme();
   initTooltips();
@@ -411,6 +417,10 @@ function init(): void {
   );
 
   emptyImportBtn.addEventListener('click', () => pickFiles({ folder: true }));
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    mainEl.classList.toggle('sidebar-open');
+  });
   fitBtn.addEventListener('click', () => fitToPhotos());
   clearBtn.addEventListener('click', clearAll);
 
@@ -587,6 +597,7 @@ function init(): void {
   renderAccentPresets();
   populateBasemaps();
   applyStaticLabels();
+  document.title = PAGE_TITLE[lang()];
   rebuildAlbumFilter();
   refreshSidebar();
   toggleEmptyState();

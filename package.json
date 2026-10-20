@@ -1,7 +1,7 @@
 {
   "name": "photomap",
   "private": true,
-  "version": "0.1.16",
+  "version": "0.1.17",
   "type": "module",
   "description": "Lightweight desktop app to show geotagged photos on a map",
   "scripts": {
@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "dev:web": "vite --config vite.web.config.ts",
     "build:web": "tsc && vite build --config vite.web.config.ts",
+    "build:android": "tsc && vite build --config vite.android.config.ts",
     "preview:web": "vite preview --config vite.web.config.ts",
     "tauri": "tauri"
   },

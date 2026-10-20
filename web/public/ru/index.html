@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PhotoMap — геотегированные фотографии на карте</title>
+    <meta
+      name="description"
+      content="PhotoMap — бесплатный просмотрщик геотегированных фотографий. Показывает GPS-координаты, направление съёмки и панорамы 360° на интерактивной карте. Работает в браузере и на компьютере, фотографии не загружаются на сервер."
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="author" content="skibidius" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#f8f9fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#131314" media="(prefers-color-scheme: dark)" />
+    <link rel="canonical" href="https://skibidius.github.io/PhotoMap/ru/" />
+    <link rel="icon" type="image/png" href="../favicon.png" />
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="../sitemap.xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PhotoMap" />
+    <meta property="og:title" content="PhotoMap — фотографии на карте" />
+    <meta
+      property="og:description"
+      content="GPS-координаты, направление съёмки и панорамы 360° на интерактивной карте. Бесплатно, локально, без загрузки фотографий на сервер."
+    />
+    <meta property="og:url" content="https://skibidius.github.io/PhotoMap/ru/" />
+    <meta property="og:image" content="https://skibidius.github.io/PhotoMap/og-ru.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="PhotoMap: геотегированные фотографии, направление съёмки и интерактивная карта"
+    />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:locale:alternate" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PhotoMap — фотографии на карте" />
+    <meta
+      name="twitter:description"
+      content="GPS, направление съёмки и панорамы 360° на интерактивной карте. Бесплатно и локально."
+    />
+    <meta name="twitter:image" content="https://skibidius.github.io/PhotoMap/og-ru.jpg" />
+
+    <!-- Yandex Webmaster: вставьте сюда meta-тег подтверждения после добавления сайта. -->
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "PhotoMap",
+        "url": "https://skibidius.github.io/PhotoMap/ru/",
+        "description": "Бесплатный просмотрщик геотегированных фотографий: GPS-координаты, направление съёмки и панорамы 360° на интерактивной карте.",
+        "inLanguage": "ru",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Windows, macOS, Linux, Android, Web",
+        "browserRequirements": "Требуется JavaScript; для панорам желателен WebGL",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "RUB" },
+        "featureList": [
+          "Геотегированные фотографии на интерактивной карте",
+          "Направление съёмки и угол обзора из EXIF",
+          "Просмотр панорам 360°",
+          "Подложки OpenStreetMap, Яндекс и Google",
+          "Экспорт KML, GeoJSON и PNG",
+          "Русский и английский интерфейс",
+          "Локальная обработка без загрузки фотографий"
+        ],
+        "screenshot": "https://skibidius.github.io/PhotoMap/screenshot.jpg",
+        "sameAs": ["https://github.com/skibidius/PhotoMap"],
+        "author": { "@type": "Person", "name": "skibidius" }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "inLanguage": "ru",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Откуда PhotoMap берёт координаты и направление съёмки?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Из EXIF: GPSLatitude и GPSLongitude задают точку на карте, GPSImgDirection — направление камеры, FocalLength и FocalLengthIn35mmFilm — фокусное расстояние и угол обзора. Для панорам используется XMP GPano."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Фотографии загружаются на сервер?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Нет. В веб-версии фотографии читаются локально в браузере и никуда не отправляются. Десктопное приложение работает с файлами на вашем компьютере."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Поддерживаются ли панорамы 360°?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Да. Эквиректангулярные панорамы открываются в интерактивном просмотрщике: их можно крутить перетаскиванием, масштабировать колесом или щипком. Есть мягкое авто-вращение."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Есть ли версия для Windows, macOS, Linux и Android?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Да, помимо веб-версии есть приложения для Windows, macOS (Intel и Apple Silicon), Linux и Android. Установщики и APK публикуются в GitHub Releases, обновления для десктопа приходят автоматически."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "В каких форматах можно экспортировать данные?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "PhotoMap экспортирует KML и GeoJSON для карт, а также PNG-снимок текущего вида карты с легендой. Снимок можно скопировать в буфер обмена."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Поддерживается ли русский язык?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Да. Интерфейс переключается между русским и английским на лету, есть светлая и тёмная темы и выбор акцентного цвета."
+            }
+          }
+        ]
+      }
+    </script>
+
+    <style>
+      :root {
+        --bg: #f8f9fa;
+        --surface: #ffffff;
+        --ink: #1f1f1f;
+        --muted: #5f6368;
+        --line: #dadce0;
+        --accent: #1967d2;
+        --accent-soft: #e8f0fe;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+      header.site {
+        position: sticky; top: 0; z-index: 10;
+        background: rgba(248, 249, 250, 0.92);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; color: var(--ink); }
+      .brand img { width: 34px; height: 34px; border-radius: 9px; }
+      .nav-links { display: flex; align-items: center; gap: 18px; font-size: 14px; }
+      .nav-links a { color: var(--muted); }
+      .nav-links a:hover { color: var(--ink); }
+      .nav-links a.btn, .nav-links a.btn:hover { color: #fff; }
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 12px 20px; border-radius: 999px;
+        background: var(--accent); color: #fff; font-weight: 600; font-size: 15px;
+        box-shadow: 0 2px 8px rgba(26, 115, 232, 0.28);
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .btn:hover { text-decoration: none; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26, 115, 232, 0.35); }
+      .btn.secondary { background: var(--surface); color: var(--accent); border: 1px solid var(--line); box-shadow: none; }
+      .btn.secondary:hover { border-color: var(--accent); }
+      .hero { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 44px; align-items: center; }
+      .hero.wrap { padding: 64px 24px 36px; }
+      .hero > * { min-width: 0; }
+      .eyebrow { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+      h1 { margin: 0 0 18px; font-size: clamp(32px, 4.6vw, 52px); line-height: 1.08; letter-spacing: -1.2px; }
+      .lead { max-width: 620px; margin: 0 0 12px; font-size: 18px; color: var(--muted); }
+      .lead.subtle { font-size: 15px; }
+      .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+      .shot { display: block; width: 100%; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 18px 50px rgba(31, 31, 31, 0.16); }
+      section { padding: 52px 0; }
+      section.alt { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      h2 { margin: 0 0 24px; font-size: clamp(26px, 3vw, 34px); letter-spacing: -0.6px; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .card { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+      section.alt .card { background: var(--bg); }
+      .card h3 { margin: 0 0 6px; font-size: 17px; }
+      .card p { margin: 0; font-size: 14px; color: var(--muted); }
+      .how { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 32px; align-items: start; }
+      .how p { margin: 0 0 12px; color: var(--muted); }
+      .how ul { margin: 0; padding-left: 20px; color: var(--muted); }
+      .how li { margin: 6px 0; }
+      .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 32px; }
+      .faq-item h3 { margin: 0 0 6px; font-size: 16px; }
+      .faq-item p { margin: 0; font-size: 14px; color: var(--muted); }
+      .support {
+        display: flex; align-items: center; justify-content: space-between; gap: 24px;
+        margin-top: 16px; padding: 28px; border-radius: 20px; background: var(--accent-soft);
+      }
+      .support h2 { margin: 0 0 6px; font-size: 24px; }
+      .support p { max-width: 720px; margin: 0; font-size: 15px; color: #3c4043; }
+      footer { padding: 28px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+      .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+      .foot-links { display: flex; flex-wrap: wrap; gap: 16px; }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #131314;
+          --surface: #1f1f20;
+          --ink: #e3e3e3;
+          --muted: #c4c7c5;
+          --line: #444746;
+          --accent: #8ab4f8;
+          --accent-soft: #1e3a5f;
+        }
+        header.site { background: rgba(19, 19, 20, 0.92); }
+        .btn { background: #1967d2; color: #fff; box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35); }
+        .btn:hover { box-shadow: 0 4px 14px rgba(26, 115, 232, 0.45); }
+        .btn.secondary { background: var(--surface); color: var(--accent); }
+        .support p { color: #e3e3e3; }
+        .shot { border-color: #444746; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5); }
+      }
+
+      @media (max-width: 900px) {
+        .hero { grid-template-columns: 1fr; }
+        .hero.wrap { padding: 40px 24px 28px; }
+        .grid { grid-template-columns: 1fr 1fr; }
+        .how { grid-template-columns: 1fr; }
+        .faq-grid { grid-template-columns: 1fr; }
+        .support { flex-direction: column; align-items: flex-start; }
+        .nav-links .hide-sm { display: none; }
+      }
+      @media (max-width: 600px) {
+        .grid { grid-template-columns: 1fr; }
+        .nav-links { gap: 12px; font-size: 13px; }
+        .nav .btn { padding: 10px 14px; }
+        .wrap { padding: 0 18px; }
+        .hero.wrap { padding-left: 18px; padding-right: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap nav">
+        <a class="brand" href="../">
+          <img src="../favicon.png" alt="" width="34" height="34" />
+          PhotoMap
+        </a>
+        <nav class="nav-links" aria-label="Навигация">
+          <a class="hide-sm" href="#features">Возможности</a>
+          <a class="hide-sm" href="#how">Как работает</a>
+          <a class="hide-sm" href="#faq">FAQ</a>
+          <a class="hide-sm" href="https://github.com/skibidius/PhotoMap" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn" href="../?lang=ru">Открыть</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div>
+          <p class="eyebrow">Бесплатно · Windows · macOS · Linux · Android · Веб</p>
+          <h1>Геотегированные фотографии на карте</h1>
+          <p class="lead">
+            PhotoMap читает GPS-координаты, направление съёмки и фокусное расстояние из EXIF,
+            расставляет снимки по интерактивной карте и показывает сектор обзора. Панорамы 360°
+            можно крутить прямо в просмотрщике.
+          </p>
+          <p class="lead subtle">
+            Всё работает локально: в веб-версии фотографии не загружаются на сервер.
+          </p>
+          <div class="cta">
+            <a class="btn" href="../?lang=ru">Открыть веб-версию</a>
+            <a class="btn secondary" href="https://github.com/skibidius/PhotoMap/releases/latest" target="_blank" rel="noopener">Скачать приложение</a>
+          </div>
+        </div>
+        <div>
+          <img
+            class="shot"
+            src="../screenshot.jpg"
+            width="1200"
+            height="983"
+            alt="PhotoMap: список фотографий, карта Москвы и попап с GPS-координатами, направлением и фокусным расстоянием"
+          />
+        </div>
+      </section>
+
+      <section id="features">
+        <div class="wrap">
+          <h2>Что умеет PhotoMap</h2>
+          <div class="grid">
+            <article class="card">
+              <h3>Фото на карте</h3>
+              <p>GPS-координаты из EXIF, кластеризация, поиск по названию, фильтр по альбомам и сортировка по дате или имени.</p>
+            </article>
+            <article class="card">
+              <h3>Направление съёмки</h3>
+              <p>Если камера записала GPSImgDirection, метка показывает сектор обзора. Фокусное расстояние переводится в угол обзора.</p>
+            </article>
+            <article class="card">
+              <h3>Панорамы 360°</h3>
+              <p>Эквиректангулярные снимки открываются в интерактивном просмотрщике: перетаскивание, зум колесом или щипком, авто-вращение.</p>
+            </article>
+            <article class="card">
+              <h3>Подложки</h3>
+              <p>OpenStreetMap, Яндекс (схема, спутник, гибрид) и Google (схема, спутник, гибрид).</p>
+            </article>
+            <article class="card">
+              <h3>Экспорт</h3>
+              <p>KML и GeoJSON для карт, PNG-снимок текущего вида с легендой, копирование снимка в буфер обмена.</p>
+            </article>
+            <article class="card">
+              <h3>Локально и приватно</h3>
+              <p>Фотографии не загружаются на сервер. Интерфейс на русском и английском, светлая и тёмная темы, выбор акцентного цвета.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="alt" id="how">
+        <div class="wrap how">
+          <div>
+            <h2>Как PhotoMap читает данные</h2>
+            <p>
+              PhotoMap читает стандартные теги EXIF: GPSLatitude и GPSLongitude задают точку на карте,
+              GPSImgDirection — направление камеры, FocalLength и FocalLengthIn35mmFilm — фокусное
+              расстояние и угол обзора.
+            </p>
+            <p>
+              Для панорам используется XMP GPano (ProjectionType = equirectangular). Файлы без
+              GPS-координат пропускаются. Десктопная версия сделана на Tauri, работает с локальными
+              файлами и обновляется автоматически.
+            </p>
+          </div>
+          <ul>
+            <li>JPEG, PNG, WebP, TIFF</li>
+            <li>HEIC/HEIF — предпросмотр зависит от платформы</li>
+            <li>KML, GeoJSON, PNG</li>
+            <li>Windows, macOS, Linux, Android и веб</li>
+            <li>Русский и английский интерфейс</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="faq">
+        <div class="wrap">
+          <h2>Частые вопросы</h2>
+          <div class="faq-grid">
+            <div class="faq-item">
+              <h3>Откуда берутся координаты и направление?</h3>
+              <p>Из EXIF: GPSLatitude/GPSLongitude, GPSImgDirection и фокусное расстояние. Для панорам — XMP GPano.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Фотографии загружаются на сервер?</h3>
+              <p>Нет. В веб-версии всё читается локально в браузере, на сервер ничего не отправляется.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Поддерживаются ли панорамы 360°?</h3>
+              <p>Да. Эквиректангулярные панорамы можно крутить, масштабировать и смотреть с авто-вращением.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Есть ли версия для Windows, macOS, Linux и Android?</h3>
+              <p>Да. Установщики для десктопа и APK для Android публикуются в GitHub Releases; обновления для десктопа приходят автоматически.</p>
+            </div>
+            <div class="faq-item">
+              <h3>В каких форматах можно экспортировать?</h3>
+              <p>KML, GeoJSON и PNG-снимок карты. Снимок также можно скопировать в буфер обмена.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Есть ли русский язык?</h3>
+              <p>Да. Язык переключается на лету, есть светлая и тёмная темы и выбор акцентного цвета.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <div class="support">
+            <div>
+              <h2>Поддержать разработку</h2>
+              <p>
+                Если PhotoMap оказался полезен, можно поддержать проект. В комментарии к донату можно
+                указать, какие функции вы хотели бы видеть в приложении.
+              </p>
+            </div>
+            <a class="btn" href="https://pay.cloudtips.ru/p/6b424301" target="_blank" rel="noopener">Поддержать разработку</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap foot">
+        <span>PhotoMap — открытый проект. Исходный код на GitHub, лицензия MIT.</span>
+        <span class="foot-links">
+          <a href="https://github.com/skibidius/PhotoMap" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/skibidius/PhotoMap/releases/latest" target="_blank" rel="noopener">Releases</a>
+          <a href="https://pay.cloudtips.ru/p/6b424301" target="_blank" rel="noopener">Поддержать</a>
+          <a href="../?lang=en" lang="en">English version</a>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

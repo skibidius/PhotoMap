@@ -59,6 +59,8 @@ const PANO_CACHE_MAX = 8;
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
 const importBtn = $('import-btn');
+const menuBtn = $('menu-btn');
+const mainEl = $('main');
 const importMenu = $('import-menu');
 const importFolderBtn = $('import-folder');
 const importFilesBtn = $('import-files');
@@ -123,7 +125,7 @@ function refreshSidebar(): void {
   render(currentList, selectedId);
   const n = currentList.length;
   photoCount.textContent = t(n === 1 ? 'photosCountOne' : 'photosCount', { n });
-  noResults.classList.toggle('hidden', currentList.length > 0);
+  noResults.classList.toggle('hidden', currentList.length > 0 || photos.length === 0);
 }
 
 function rebuildAlbumFilter(): void {
@@ -141,6 +143,7 @@ function rebuildAlbumFilter(): void {
 
 function select(id: string, fromMap: boolean): void {
   selectedId = id;
+  mainEl.classList.remove('sidebar-open');
   // Clicking a marker should not move the map (it also keeps spiderfied
   // clusters open); picking from the list should centre it.
   selectPhoto(id, { pan: !fromMap });
@@ -151,6 +154,7 @@ function select(id: string, fromMap: boolean): void {
 function deselect(): void {
   selectedId = null;
   clearHighlight();
+  mainEl.classList.remove('sidebar-open');
 }
 
 function openViewer(id: string): void {
@@ -281,6 +285,7 @@ function syncControls(): void {
   const scheme = document.documentElement.dataset.scheme;
   themeIcon.textContent = scheme === 'dark' ? 'dark_mode' : 'light_mode';
   langBtn.textContent = lang().toUpperCase();
+  langBtn.setAttribute('aria-label', `${t('language')}: ${lang().toUpperCase()}`);
 
   document.querySelectorAll<HTMLElement>('.seg[data-scheme]').forEach((b) => {
     b.classList.toggle('active', b.dataset.scheme === getPrefs().scheme);
@@ -403,6 +408,10 @@ function init(): void {
   );
 
   emptyImportBtn.addEventListener('click', () => void importFolder());
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    mainEl.classList.toggle('sidebar-open');
+  });
   fitBtn.addEventListener('click', () => fitToPhotos());
   clearBtn.addEventListener('click', clearAll);
 
