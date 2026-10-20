@@ -35,6 +35,8 @@ import '../src/styles.css';
 
 declare const __APP_VERSION__: string;
 
+const SUPPORT_URL = 'https://pay.cloudtips.ru/p/6b424301';
+
 const ALBUM_PALETTE = [
   '#1a73e8',
   '#188038',
@@ -82,6 +84,7 @@ const langBtn = $('lang-btn');
 const settingsBtn = $('settings-btn');
 const settingsPanel = $('settings-panel');
 const settingsClose = $('settings-close');
+const supportBtn = $('support-btn');
 const labelsToggle = $<HTMLInputElement>('labels-toggle');
 const aboutPanel = $('about-panel');
 const aboutBtn = $('about-btn');
@@ -536,6 +539,10 @@ function init(): void {
   settingsClose.addEventListener('click', () => settingsPanel.classList.add('hidden'));
   settingsPanel.addEventListener('click', (e) => {
     if (e.target === settingsPanel) settingsPanel.classList.add('hidden');
+  });
+
+  supportBtn.addEventListener('click', () => {
+    window.open(SUPPORT_URL, '_blank', 'noopener');
   });
 
   // The web build has no auto-updater; hide the update section.

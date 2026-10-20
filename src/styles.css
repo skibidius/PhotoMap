@@ -1371,3 +1371,10 @@ html.web #lightbox-reveal {
     right: 8px;
   }
 }
+
+.settings-note {
+  margin: 8px 0 0;
+  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  line-height: 1.45;
+}

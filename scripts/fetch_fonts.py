@@ -46,6 +46,7 @@ ICONS = ",".join(
         "search",
         "settings",
         "system_update_alt",
+        "volunteer_activism",
         "arrow_drop_down",
     ]
 )

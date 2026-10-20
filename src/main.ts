@@ -31,6 +31,8 @@ import type { Photo, ScanSummary } from './types';
 // Import last so its rules win over Leaflet's defaults.
 import './styles.css';
 
+const SUPPORT_URL = 'https://pay.cloudtips.ru/p/6b424301';
+
 const ALBUM_PALETTE = [
   '#1a73e8',
   '#188038',
@@ -79,6 +81,7 @@ const settingsBtn = $('settings-btn');
 const settingsPanel = $('settings-panel');
 const settingsClose = $('settings-close');
 const checkUpdatesBtn = $('check-updates-btn');
+const supportBtn = $('support-btn');
 const labelsToggle = $<HTMLInputElement>('labels-toggle');
 const aboutPanel = $('about-panel');
 const aboutBtn = $('about-btn');
@@ -526,6 +529,9 @@ function init(): void {
   settingsBtn.addEventListener('click', () => settingsPanel.classList.remove('hidden'));
   settingsClose.addEventListener('click', () => settingsPanel.classList.add('hidden'));
   checkUpdatesBtn.addEventListener('click', () => void checkForUpdates(false));
+  supportBtn.addEventListener('click', () => {
+    void invoke('open_url', { url: SUPPORT_URL });
+  });
   settingsPanel.addEventListener('click', (e) => {
     if (e.target === settingsPanel) settingsPanel.classList.add('hidden');
   });
@@ -562,7 +568,7 @@ function init(): void {
         aboutVersion.textContent = `${t('version')} ${v}`;
       })
       .catch(() => {
-        aboutVersion.textContent = `${t('version')} 0.1.15`;
+        aboutVersion.textContent = `${t('version')} 0.1.16`;
       });
   });
   aboutClose.addEventListener('click', () => aboutPanel.classList.add('hidden'));
